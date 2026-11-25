@@ -71,3 +71,13 @@ jobs:
             --title "연말네컷 1.0.${{ github.run_number }}" \
             --notes "갤럭시 폰에서 yearend4cut.apk 를 눌러 내려받고 설치하세요." \
             --latest
+
+  pages:
+    # 폰에서 여는 사진 보내기(send.html)·사진 받기(p.html) 페이지를 GitHub Pages로 올려요
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./www

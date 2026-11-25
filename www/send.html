@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>연말네컷 · 사진 보내기</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+:root{--bg:#FFF4F7;--ink:#3A2848;--mute:#7C6B8A;--pink:#FF7FA8;--lav:#9C8CF0;--card:#FFFFFF;--line:#F1DCE6;--ok:#2FB67C;--err:#E8505B}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100vh;background:radial-gradient(110% 50% at 50% 0%,#FFE1EC,transparent 70%),linear-gradient(180deg,#FFF4F7,#F1ECFF);color:var(--ink);font:16px/1.55 "Gowun Dodum",system-ui,sans-serif;padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 28px)}
+main{max-width:460px;margin:0 auto}
+.head{text-align:center}
+.head img{width:150px;height:auto;display:block;margin:0 auto -4px}
+h1{font-family:Jua,sans-serif;font-weight:400;font-size:34px;line-height:1.1;margin:6px 0 4px;color:#E4578A}
+.lead{margin:0 0 16px;color:var(--mute)}
+.card{background:var(--card);border-radius:24px;padding:18px;box-shadow:0 10px 30px rgba(180,120,160,.15);margin-bottom:14px}
+label{display:block;font-size:14px;color:var(--mute);margin:0 0 6px}
+input[type=text]{width:100%;min-height:50px;border-radius:14px;border:1.5px solid var(--line);background:#FFFBFD;color:var(--ink);font:inherit;font-size:17px;padding:0 14px}
+input[type=text]:focus{outline:none;border-color:var(--pink)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:96px;border-radius:22px;border:0;font-family:Jua,sans-serif;font-size:19px;color:#fff;background:linear-gradient(180deg,#FF9DBE,var(--pink));box-shadow:0 8px 18px rgba(255,127,168,.35);cursor:pointer;width:100%}
+.btn.lav{background:linear-gradient(180deg,#B8ABFF,var(--lav));box-shadow:0 8px 18px rgba(156,140,240,.35)}
+.btn:active{transform:scale(.97)}
+.btn svg{width:28px;height:28px}
+.st{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--mute);margin-top:12px}
+.st i{width:10px;height:10px;border-radius:50%;background:#D9CCE0;flex:none}
+.st.ok i{background:var(--ok)}.st.err i{background:var(--err)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:4px}
+.ph{position:relative;aspect-ratio:3/4;border-radius:14px;background:#EEE center/cover;overflow:hidden}
+.ph span{position:absolute;left:6px;right:6px;bottom:6px;font-size:12px;text-align:center;padding:3px 0;border-radius:10px;background:rgba(255,255,255,.9)}
+.ph.ok span{color:var(--ok)}.ph.err span{color:var(--err)}
+.tip{font-size:14px;color:var(--mute);margin:10px 2px 0;line-height:1.5}
+.empty{color:var(--mute);font-size:14px;text-align:center;padding:8px 0}
+</style>
+</head>
+<body>
+<main>
+  <div class="head">
+    <img src="img/dabut-heart.png" alt="">
+    <h1>연말네컷 사진 보내기</h1>
+    <p class="lead">찍은 사진을 포토부스 패드로 보내 주세요</p>
+  </div>
+
+  <div class="card">
+    <div class="two">
+      <div><label for="code">연결 코드</label><input type="text" id="code" inputmode="numeric" maxlength="4" placeholder="4자리"></div>
+      <div><label for="from">보내는 사람</label><input type="text" id="from" maxlength="12" placeholder="이름 (선택)"></div>
+    </div>
+    <div class="st" id="st"><i></i><span>패드에 연결하는 중</span></div>
+  </div>
+
+  <div class="two">
+    <button class="btn" id="camBtn"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>바로 찍기</button>
+    <button class="btn lav" id="libBtn"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/></svg>앨범에서 고르기</button>
+  </div>
+  <input type="file" id="camIn" accept="image/*" capture hidden>
+  <input type="file" id="libIn" accept="image/*" multiple hidden>
+  <p class="tip">한 번에 여러 장 보낼 수 있어요. 네 컷을 만들려면 모두 합쳐 4장이 필요해요. 사진은 패드에만 전달되고, 꾸민 뒤 완성된 사진을 QR로 다시 받을 수 있어요.</p>
+
+  <div class="card" style="margin-top:14px">
+    <label>보낸 사진</label>
+    <div class="grid" id="grid"><div class="empty" style="grid-column:1/-1">아직 보낸 사진이 없어요</div></div>
+  </div>
+</main>
+
+<script src="vendor/peerjs.min.js"></script>
+<script>
+{
+const $ = id => document.getElementById(id);
+const q = new URLSearchParams(location.search);
+let code = (q.get('c') || '').replace(/\D/g, '').slice(0, 4);
+try { $('from').value = localStorage.getItem('y4c-from') || ''; } catch (e) {}
+$('from').oninput = e => { try { localStorage.setItem('y4c-from', e.target.value); } catch (x) {} };
+$('code').value = code;
+
+let peer = null, conn = null, ready = false, waiters = [];
+function st(cls, text) { $('st').className = 'st ' + cls; $('st').lastElementChild.textContent = text; }
+function connect() {
+  if (!/^\d{4}$/.test(code)) { st('', '패드 화면에 보이는 4자리 코드를 넣어 주세요'); return; }
+  if (!window.Peer) { st('err', '연결 도구를 불러오지 못했어요. 새로고침해 주세요.'); return; }
+  ready = false; st('', '패드에 연결하는 중');
+  if (!peer || peer.destroyed) {
+    peer = new Peer({debug: 0});
+    peer.on('error', e => { if (e.type === 'peer-unavailable') st('err', '패드를 찾지 못했어요. 코드와 패드의 사진함 화면을 확인해 주세요.'); else st('err', '연결이 불안정해요. 잠시 후 다시 시도해 주세요.'); });
+    peer.on('disconnected', () => setTimeout(() => peer && !peer.destroyed && peer.reconnect(), 1200));
+    peer.on('open', open);
+  } else if (peer.open) open();
+}
+function open() {
+  if (conn) try { conn.close(); } catch (e) {}
+  conn = peer.connect('dadabut-y4c-' + code, {reliable: true});
+  conn.on('open', () => { ready = true; st('ok', `패드와 연결됐어요 · 코드 ${code}`); });
+  conn.on('data', d => { const w = waiters.shift(); if (w) w(d && d.t === 'got'); });
+  conn.on('close', () => { ready = false; st('err', '연결이 끊겼어요. 다시 연결하는 중'); setTimeout(connect, 1500); });
+}
+$('code').oninput = e => { code = e.target.value.replace(/\D/g, '').slice(0, 4); e.target.value = code; if (code.length === 4) connect(); };
+connect();
+
+$('camBtn').onclick = () => $('camIn').click();
+$('libBtn').onclick = () => $('libIn').click();
+$('camIn').onchange = e => { queue(e.target.files); e.target.value = ''; };
+$('libIn').onchange = e => { queue(e.target.files); e.target.value = ''; };
+
+let busy = Promise.resolve();
+function queue(files) {
+  if (!files || !files.length) return;
+  const g = $('grid'); if (g.querySelector('.empty')) g.innerHTML = '';
+  for (const f of files) {
+    const el = document.createElement('div'); el.className = 'ph'; el.innerHTML = '<span>준비 중</span>'; g.prepend(el);
+    busy = busy.then(() => sendOne(f, el));
+  }
+}
+function loadImage(file) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('사진을 열 수 없어요')); i.src = URL.createObjectURL(file); }); }
+async function sendOne(file, el) {
+  const lab = el.querySelector('span');
+  try {
+    const img = await loadImage(file);
+    const m = Math.min(1, 2400 / Math.max(img.naturalWidth, img.naturalHeight));
+    const cv = document.createElement('canvas'); cv.width = Math.round(img.naturalWidth * m); cv.height = Math.round(img.naturalHeight * m);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(img.src);
+    el.style.backgroundImage = `url(${cv.toDataURL('image/jpeg', .5)})`;
+    const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', .9));
+    const buf = await blob.arrayBuffer();
+    for (let t = 0; t < 20 && !ready; t++) { lab.textContent = '연결 기다리는 중'; await new Promise(r => setTimeout(r, 500)); }
+    if (!ready) throw new Error('패드와 연결되지 않았어요');
+    lab.textContent = '보내는 중';
+    const ok = await new Promise(r => { const tm = setTimeout(() => { waiters = waiters.filter(w => w !== fn); r(false); }, 25000); const fn = v => { clearTimeout(tm); r(v); }; waiters.push(fn); conn.send({t: 'photo', buf, from: $('from').value.trim()}); });
+    if (!ok) throw new Error('패드가 받지 못했어요');
+    el.className = 'ph ok'; lab.textContent = '보냈어요 ✓';
+  } catch (e) { el.className = 'ph err'; lab.textContent = e.message || '실패'; }
+}
+}
+</script>
+</body>
+</html>

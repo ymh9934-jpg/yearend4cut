@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>연말네컷 · 사진 받기</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+*{box-sizing:border-box;min-width:0}
+body{margin:0;min-height:100vh;background:radial-gradient(110% 45% at 50% 0%,#FFE1EC,transparent 70%),linear-gradient(180deg,#FFF4F7,#F1ECFF);color:#3A2848;font:16px/1.55 "Gowun Dodum",system-ui,sans-serif;padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 28px);text-align:center}
+main{max-width:520px;margin:0 auto}
+h1{font-family:Jua,sans-serif;font-weight:400;font-size:32px;margin:0 0 4px;color:#E4578A}
+p{margin:0 0 14px;color:#7C6B8A}
+.photo{background:#fff;border-radius:18px;padding:10px;box-shadow:0 12px 30px rgba(180,120,160,.2);margin:8px 0 16px;min-height:200px;display:flex;align-items:center;justify-content:center}
+.photo img{max-width:100%;max-height:70vh;border-radius:8px;display:block;-webkit-touch-callout:default}
+.btn{display:flex;align-items:center;justify-content:center;min-height:56px;border-radius:28px;font-family:Jua,sans-serif;font-size:20px;color:#fff;text-decoration:none;background:linear-gradient(180deg,#FF9DBE,#FF7FA8);box-shadow:0 8px 18px rgba(255,127,168,.35)}
+.how{background:#fff;border-radius:18px;padding:14px 16px;margin-top:14px;text-align:left;font-size:15px;color:#5A4A68}
+.how b{color:#3A2848}
+.foot{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;color:#9C8CB0;font-size:14px}
+.foot img{width:56px}
+</style>
+</head>
+<body>
+<main>
+  <h1>연말네컷이 도착했어요</h1>
+  <p>올해도 함께해서 고마웠어요!</p>
+  <div class="photo"><img id="ph" alt="연말네컷 사진"></div>
+  <a class="btn" id="dl" href="#">사진 저장하기</a>
+  <div class="how" id="how"></div>
+  <div class="foot"><img src="img/dabut-coffee.png" alt="">THE 다붓 연말 포토부스</div>
+</main>
+<script>
+{
+const id = (new URLSearchParams(location.search).get('id') || '').replace(/[^\w-]/g, '');
+const img = document.getElementById('ph');
+if (!id) { document.querySelector('h1').textContent = '사진 주소가 올바르지 않아요'; img.remove(); }
+else {
+  const srcs = [`https://lh3.googleusercontent.com/d/${id}=w2400`, `https://drive.google.com/thumbnail?id=${id}&sz=w2400`];
+  let k = 0; img.onerror = () => { if (++k < srcs.length) img.src = srcs[k]; }; img.src = srcs[0];
+  document.getElementById('dl').href = `https://drive.google.com/uc?export=download&id=${id}`;
+}
+const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+document.getElementById('how').innerHTML = ios
+  ? '<b>아이폰</b>은 위 사진을 길게 누른 뒤 <b>‘사진 앱에 저장’</b>을 누르면 바로 앨범에 들어가요.'
+  : '<b>갤럭시</b>는 ‘사진 저장하기’를 누르거나, 사진을 길게 눌러 <b>‘이미지 저장’</b>을 누르면 돼요.';
+}
+</script>
+</body>
+</html>
