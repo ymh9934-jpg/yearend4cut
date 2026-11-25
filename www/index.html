@@ -186,8 +186,8 @@ h1{font-family:var(--round);font-weight:400;font-size:50px;line-height:1;margin:
   <div class="stage">
     <div class="qrbox" id="camLink" hidden style="position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);z-index:2;flex-direction:column;text-align:center;padding:22px">
       <canvas id="qrCam" style="width:220px;height:220px"></canvas>
-      <div><b>폰 카메라로 이 QR을 찍고<br>‘카메라 켜고 연결하기’를 눌러 주세요</b>
-      <p>연결되면 폰 카메라 화면이 여기에 실시간으로 나와요.</p>
+      <div><b id="camLinkTitle">폰 카메라로 이 QR을 찍고<br>‘카메라 켜고 연결하기’를 눌러 주세요</b>
+      <p id="camLinkSub">연결되면 폰 카메라 화면이 여기에 실시간으로 나와요.</p>
       <span class="status" id="camStatus"><i></i><span>연결 준비 중</span></span></div>
     </div>
     <div class="vp" id="vp"><video id="video" playsinline muted autoplay></video><div class="count" id="count"></div></div>
@@ -576,12 +576,16 @@ function attachRemote() {
   if (current !== 'shoot' || S.src !== 'phone') return;
   const live = remoteLive();
   $('camLink').hidden = !!live; $('startBtn').disabled = !live || S.running;
-  if (!live) { drawQRTo($('qrCam'), `${PAGES}cam.html?c=${S.code}`, 2); video.srcObject = null; if (!S.running) $('startBtn').textContent = '폰 연결을 기다리는 중'; return; }
+  if (!live) { camLinkText(false); drawQRTo($('qrCam'), `${PAGES}cam.html?c=${S.code}`, 2); video.srcObject = null; if (!S.running) $('startBtn').textContent = '폰 연결을 기다리는 중'; return; }
   if (video.srcObject !== remote.stream) { video.srcObject = remote.stream; lastFrame = Date.now(); video.play().catch(() => {}); }
   video.classList.toggle('mirror', S.mirror);
   if (!S.running && $('startBtn').textContent === '폰 연결을 기다리는 중') $('startBtn').textContent = '촬영 시작';
 }
-$('qrAgain').onclick = () => { const h = !$('camLink').hidden; $('camLink').hidden = h; if (!h) drawQRTo($('qrCam'), `${PAGES}cam.html?c=${S.code}`, 2); };
+function camLinkText(swap) {
+  $('camLinkTitle').innerHTML = swap ? '다른 폰으로 바꾸려면<br>그 폰으로 이 QR을 찍어 주세요' : '폰 카메라로 이 QR을 찍고<br>‘카메라 켜고 연결하기’를 눌러 주세요';
+  $('camLinkSub').textContent = swap ? '새 폰이 연결되면 지금 폰은 자동으로 연결이 끊겨요. 화면을 누르면 닫혀요.' : '연결되면 폰 카메라 화면이 여기에 실시간으로 나와요.';
+}
+$('qrAgain').onclick = () => { if (S.running) return; const h = !$('camLink').hidden; camLinkText(remoteLive()); $('camLink').hidden = h; if (!h) drawQRTo($('qrCam'), `${PAGES}cam.html?c=${S.code}`, 2); };
 $('camLink').onclick = () => { if (remoteLive()) $('camLink').hidden = true; };
 $('mirrorBtn').onclick = () => { S.mirror = !S.mirror; S.mirrorPref = S.mirror; video.classList.toggle('mirror', S.mirror); toast(S.mirror ? '거울처럼 좌우 반전해서 찍어요' : '좌우 반전 없이 찍어요'); };
 let shotWait = null;
@@ -595,6 +599,7 @@ function grabPhone() {
 }
 async function onCamData(d) {
   if (!d) return;
+  if (d.t === 'start') { if (current === 'shoot' && S.src === 'phone' && !S.running && remoteLive()) runSeq(); else if (current !== 'shoot') relay({t: 'notready'}); return; }
   if (d.t === 'facing') { S.mirror = d.facing === 'user' ? true : S.mirrorPref; video.classList.toggle('mirror', S.mirror); }
   if ((d.t === 'shot' || d.t === 'shotfail') && shotWait && shotWait.id === d.id) {
     if (d.t === 'shotfail' || !d.buf) return shotWait.done(null);
@@ -628,7 +633,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 let runId = 0;
 async function runSeq() {
   if (S.running) return; S.running = true; const my = ++runId;
-  $('startBtn').disabled = true; $('startBtn').textContent = '웃어요!';
+  $('startBtn').disabled = true; $('startBtn').textContent = '웃어요!'; $('camLink').hidden = true; relay({t: 'running'});
   const cnt = $('count');
   while (S.queue.length && my === runId) {
     if (S.src === 'phone' && !(remote.conn && remote.conn.open && remote.stream)) { S.running = false; $('count').textContent = ''; attachRemote(); return; }
@@ -642,7 +647,7 @@ async function runSeq() {
     drawShootUI(); await wait(S.queue.length ? 900 : 500);
   }
   S.running = false;
-  if (my === runId && !S.queue.length) { stopCam(); startEditing(S.shots); go('edit', true); }
+  if (my === runId && !S.queue.length) { relay({t: 'done'}); stopCam(); startEditing(S.shots); go('edit', true); }
 }
 function abortSeq() { runId++; S.running = false; $('count').textContent = ''; relay({t: 'count', n: 0}); }
 function relay(m) { if (S.src === 'phone' && remote.conn && remote.conn.open) try { remote.conn.send(m); } catch (e) {} }
@@ -657,7 +662,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 /* ===== 사진함 (폰에서 받기) ===== */
-let peer = null, conns = new Set(), linkState = 'wait', idRetry = 0; const remote = {conn: null, stream: null};
+let peer = null, conns = new Set(), linkState = 'wait', idRetry = 0; const remote = {conn: null, stream: null, call: null};
 function setLink(state, text) {
   linkState = state;
   const cs = $('camStatus'); if (cs) { cs.className = 'status' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : ''); cs.lastElementChild.textContent = state === 'ok' ? `폰 기다리는 중 · 코드 ${S.code}` : text; } const el = $('linkStatus'); el.className = 'status' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : '');
@@ -681,8 +686,10 @@ function ensurePeer() {
   });
   peer.on('connection', c => {
     if (c.metadata && c.metadata.role === 'cam') {
-      if (remote.conn && remote.conn !== c) try { remote.conn.close(); } catch (e) {}
-      remote.conn = c;
+      const old = remote.conn;
+      if (old && old !== c) { try { old.send({t: 'bye'}); } catch (e) {} setTimeout(() => { try { old.close(); } catch (e) {} }, 400); }
+      if (remote.call) { try { remote.call.close(); } catch (e) {} remote.call = null; }
+      remote.conn = c; remote.stream = null; attachRemote();
       c.on('open', () => { toast('폰 카메라가 연결됐어요'); attachRemote(); });
       c.on('data', onCamData);
       c.on('close', () => { if (remote.conn === c) { remote.conn = null; remote.stream = null; attachRemote(); if (current === 'shoot' && S.src === 'phone') toast('폰 연결이 끊겼어요'); } });
@@ -693,9 +700,11 @@ function ensurePeer() {
     c.on('close', () => conns.delete(c));
   });
   peer.on('call', call => {
-    call.answer();
-    call.on('stream', st => { remote.stream = st; attachRemote(); });
-    call.on('close', () => { if (remote.stream) { remote.stream = null; attachRemote(); } });
+    if (remote.conn && call.peer !== remote.conn.peer) { try { call.close(); } catch (e) {} return; }
+    if (remote.call && remote.call !== call) try { remote.call.close(); } catch (e) {}
+    remote.call = call; call.answer();
+    call.on('stream', st => { if (remote.call === call) { remote.stream = st; attachRemote(); } });
+    call.on('close', () => { if (remote.call === call) { remote.call = null; remote.stream = null; attachRemote(); } });
   });
 }
 async function onPhoto(c, d) {

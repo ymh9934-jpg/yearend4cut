@@ -14,7 +14,14 @@ html,body{margin:0;height:100%;background:#0B1226;color:#F7F1E3;font:16px/1.5 "G
 .pill{min-height:44px;border-radius:22px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:15px;padding:0 16px}
 .stage{flex:1;position:relative;margin:10px 0;border-radius:18px;overflow:hidden;background:#000;min-height:0}
 video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
-.count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Jua,sans-serif;font-size:150px;color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.6);pointer-events:none}
+.count{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,14,30,.35);pointer-events:none}
+.count.on{display:flex}
+.count b{font-family:Jua,sans-serif;font-weight:400;font-size:min(46vw,220px);line-height:1;color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.6);animation:pop .9s ease-out}
+.count span{font-family:Jua,sans-serif;font-size:22px;color:#FFE9A8;margin-top:6px;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+@keyframes pop{0%{transform:scale(1.6);opacity:0}25%{transform:scale(1);opacity:1}100%{opacity:.9}}
+.bar{display:flex;gap:10px;align-items:center}
+#shootBtn{flex:1;max-width:none}
+#shootBtn:disabled{opacity:.45}
 .flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
 .flash.go{animation:fl .45s ease-out}
 @keyframes fl{0%{opacity:.95}100%{opacity:0}}
@@ -44,6 +51,7 @@ input{width:150px;min-height:52px;border-radius:14px;border:1.5px solid rgba(255
       <button class="btn" id="go">카메라 켜고 연결하기</button>
     </div>
   </div>
+  <div class="bar" style="margin-bottom:10px"><button class="btn" id="shootBtn" disabled>촬영 시작</button></div>
   <div class="st" id="st"><i></i><span>패드 화면의 QR로 들어오면 코드가 자동으로 들어가요</span></div>
   <p class="tip">찍는 동안 화면이 꺼지지 않게 해 주세요. 세로 4컷은 폰을 가로로 눕히면 더 잘 나와요.</p>
 </div>
@@ -57,7 +65,7 @@ let code = (new URLSearchParams(location.search).get('c') || '').replace(/\D/g, 
 $('code').value = code;
 $('code').oninput = e => { code = e.target.value.replace(/\D/g, '').slice(0, 4); e.target.value = code; };
 
-let facing = 'environment', stream = null, peer = null, conn = null, call = null, lock = null, started = false;
+let facing = 'environment', stream = null, peer = null, conn = null, call = null, lock = null, started = false, kicked = false;
 function st(cls, t) { $('st').className = 'st ' + cls; $('st').lastElementChild.textContent = t; }
 
 async function getCam() {
@@ -94,7 +102,7 @@ setInterval(() => { if (started && !document.hidden && !camLive()) revive(false)
 $('go').onclick = async () => {
   if (!/^\d{4}$/.test(code)) { $('code').focus(); st('err', '패드 화면에 보이는 4자리 코드를 넣어 주세요'); return; }
   try { unlockAudio(); await getCam(); } catch (e) { st('err', '카메라를 켤 수 없어요. 사파리/크롬 설정에서 카메라 권한을 허용해 주세요.'); return; }
-  $('intro').hidden = true; $('intro').style.display = 'none'; started = true; wake(); connect();
+  $('intro').hidden = true; $('intro').style.display = 'none'; started = true; kicked = false; wake(); connect();
 };
 function connect() {
   if (!window.Peer) { st('err', '연결 도구를 불러오지 못했어요. 새로고침해 주세요.'); return; }
@@ -103,14 +111,14 @@ function connect() {
     try { conn && conn.close(); } catch (e) {} try { call && call.close(); } catch (e) {}
     const id = 'dadabut-y4c-' + code;
     conn = peer.connect(id, {reliable: true, metadata: {role: 'cam'}});
-    conn.on('open', async () => { st('ok', `패드와 연결됐어요 · 코드 ${code}`); try { if (!camLive()) await getCam(); } catch (e) {} conn.send({t: 'facing', facing}); call = peer.call(id, stream, {metadata: {role: 'cam'}}); watchCall(); });
+    conn.on('open', async () => { st('ok', `패드와 연결됐어요 · 코드 ${code}`); $('shootBtn').disabled = false; $('shootBtn').textContent = '촬영 시작'; try { if (!camLive()) await getCam(); } catch (e) {} conn.send({t: 'facing', facing}); call = peer.call(id, stream, {metadata: {role: 'cam'}}); watchCall(); });
     conn.on('data', onCmd);
-    conn.on('close', () => { if (!started) return; st('err', '연결이 끊겼어요. 다시 연결하는 중'); setTimeout(connect, 2000); });
+    conn.on('close', () => { $('shootBtn').disabled = true; if (!started || kicked) return; st('err', '연결이 끊겼어요. 다시 연결하는 중'); setTimeout(connect, 2000); });
   };
   if (!peer || peer.destroyed) {
     peer = new Peer({debug: 0});
     peer.on('open', go);
-    peer.on('error', e => { st('err', e.type === 'peer-unavailable' ? '패드를 찾지 못했어요. 패드에서 ‘폰 카메라로 찍기’ 화면을 열어 주세요.' : '연결이 불안정해요. 다시 시도하는 중'); setTimeout(() => { if (!conn || !conn.open) connect(); }, 3000); });
+    peer.on('error', e => { if (kicked) return; st('err', e.type === 'peer-unavailable' ? '패드를 찾지 못했어요. 패드에서 ‘폰 카메라로 찍기’ 화면을 열어 주세요.' : '연결이 불안정해요. 다시 시도하는 중'); setTimeout(() => { if (!conn || !conn.open) connect(); }, 3000); });
     peer.on('disconnected', () => setTimeout(() => peer && !peer.destroyed && peer.reconnect(), 1200));
   } else if (peer.open) go(); else peer.reconnect();
 }
@@ -120,7 +128,16 @@ function beep(f, d) { try { const o = AC.createOscillator(), g = AC.createGain()
 async function onCmd(d) {
   if (!d) return;
   if (d.t === 'recall') { revive(true); return; }
-  if (d.t === 'count') { $('count').textContent = d.n || ''; if (d.n) beep(d.n === 1 ? 1320 : 880, .1); }
+  if (d.t === 'count') {
+    const c = $('count');
+    if (d.n) { c.innerHTML = `<b>${+d.n}</b><span>${+d.cut || ''}번째 컷 · 패드를 보며 웃어요!</span>`; c.classList.add('on'); beep(d.n === 1 ? 1320 : 880, .1); }
+    else { c.classList.remove('on'); c.innerHTML = ''; }
+  }
+  if (d.t === 'running') { $('shootBtn').disabled = true; $('shootBtn').textContent = '찍는 중…'; }
+  if (d.t === 'done') { $('shootBtn').disabled = false; $('shootBtn').textContent = '네 컷 완성! 패드에서 꾸며요'; setTimeout(() => { $('shootBtn').textContent = '촬영 시작'; }, 4000); }
+  if (d.t === 'notready') st('err', '패드에서 ‘폰 카메라로 찍기’ 화면을 먼저 열어 주세요');
+  if (d.t === 'bye') { kicked = true; started = false; try { conn.close(); } catch (e) {} try { call && call.close(); } catch (e) {} if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
+    $('shootBtn').disabled = true; $('intro').style.display = ''; $('intro').hidden = false; $('intro').querySelector('h1').textContent = '다른 폰이 연결됐어요'; $('intro').querySelector('p').innerHTML = '이 폰으로 다시 찍으려면<br>아래 버튼을 눌러 주세요.'; st('', '연결을 다른 폰에 넘겼어요'); return; }
   if (d.t === 'flip') {
     facing = facing === 'user' ? 'environment' : 'user';
     if (!stream) return;
@@ -131,7 +148,7 @@ async function onCmd(d) {
     } catch (e) { st('err', '카메라를 바꾸지 못했어요'); }
   }
   if (d.t === 'shoot') {
-    $('count').textContent = '';
+    $('count').classList.remove('on');
     const v = $('v'), vw = v.videoWidth, vh = v.videoHeight;
     try {
       if (!vw) throw new Error('no frame');
@@ -145,6 +162,7 @@ async function onCmd(d) {
   }
 }
 $('flip').onclick = () => onCmd({t: 'flip'});
+$('shootBtn').onclick = () => { unlockAudio(); if (conn && conn.open) conn.send({t: 'start'}); };
 }
 </script>
 </body>
