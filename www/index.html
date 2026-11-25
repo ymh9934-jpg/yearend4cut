@@ -4,103 +4,175 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>연말네컷</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
-:root{--bg:#14213D;--panel:#1C2C50;--line:#2D406B;--ink:#F6F3EA;--mute:#A9B4CC;--gold:#F2C14E;--red:#E4572E}
+/*
+VOICE  따뜻하고 설레는 교회 연말 밤. 조용한 고급스러움, 반짝임은 금빛으로만.
+IDEA   예배당 로비에 걸린 사진 스트립 — 금색 집게로 줄에 매달린 네컷이 첫 화면의 주인공.
+PICTURE 줄에 매달려 살짝 흔들리는 프레임 미리보기 + 화면 뒤로 내리는 눈.
+COLOUR 한밤의 남색→자두빛 그라데이션, 크림 글씨, 금색 하나만 강조.
+TYPE   제목·프레임 글씨는 고운바탕 굵게, 본문은 고운돋움.
+*/
+:root{
+  --night:#0F1830;--plum:#2B1C3F;--card:rgba(255,255,255,.06);--cardLine:rgba(255,255,255,.12);
+  --ink:#F7F1E3;--mute:#B9B3C9;--gold:#E8C26A;--gold2:#C99A3E;--deep:#0A1124;
+  --serif:"Gowun Batang",serif;--sans:"Gowun Dodum",system-ui,sans-serif;
+}
+[hidden]{display:none!important}
 *{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Samsung Sans","Noto Sans KR",sans-serif;overflow:hidden;user-select:none}
-.screen{position:fixed;inset:0;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 14px)}
+html,body{margin:0;height:100%;color:var(--ink);font:16px/1.55 var(--sans);overflow:hidden;user-select:none;
+  background:radial-gradient(120% 70% at 50% 0%,#24305A 0%,transparent 60%),linear-gradient(170deg,var(--night) 0%,var(--plum) 100%)}
+button{font:inherit;color:inherit}
+#snow{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+.screen{position:fixed;inset:0;display:none;flex-direction:column}
 .screen.on{display:flex}
-h1{font-family:Jua,sans-serif;font-weight:400;font-size:40px;line-height:1.05;margin:4px 0 2px;color:var(--gold)}
-.lead{color:var(--mute);margin:0 0 10px;font-size:15px}
-.label{font-size:14px;color:var(--mute);margin:14px 0 6px}
-.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex:none;min-height:44px;padding:0 16px;border-radius:22px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:15px;display:flex;align-items:center;gap:8px}
-.chip.on{border-color:var(--gold);background:#2A3A62;color:#fff}
-.sw{width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.4)}
-input[type=text]{width:100%;min-height:48px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:17px;padding:0 14px}
-input[type=text]:focus{outline:2px solid var(--gold);outline-offset:1px}
-.btn{min-height:56px;border-radius:16px;border:0;font:inherit;font-size:18px;font-weight:700;background:var(--gold);color:#1a1405;width:100%}
-.btn.ghost{background:var(--panel);color:var(--ink);border:1.5px solid var(--line)}
-.btn:active,.chip:active{transform:scale(.98)}
-.row{display:flex;gap:10px}
-.scroll{flex:1;overflow-y:auto;margin:0 -18px;padding:0 18px}
-/* home */
-#home .top{display:flex;gap:16px;align-items:stretch}
-#home .preview{flex:none;height:min(46vh,380px);display:flex;align-items:center;justify-content:center}
-#home .preview canvas{height:100%;width:auto;border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
-#home .intro{display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:6px}
-#home .foot{padding-top:12px}
-/* shoot */
-#shoot{background:#0B1226;padding-left:0;padding-right:0}
-.bar{display:flex;align-items:center;justify-content:space-between;padding:0 16px 10px}
-.dots{display:flex;gap:8px}
-.dots i{width:12px;height:12px;border-radius:50%;background:#33415f}
-.dots i.done{background:var(--gold)}.dots i.now{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.25)}
-.iconbtn{min-width:44px;min-height:44px;border-radius:22px;border:0;background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:15px;padding:0 14px}
-.stage{flex:1;display:flex;align-items:center;justify-content:center;padding:0 10px;position:relative}
-.vp{position:relative;width:100%;max-height:100%;overflow:hidden;border-radius:10px;background:#000}
+.pad{padding-left:20px;padding-right:20px}
+
+/* ---------- 홈 ---------- */
+#home .scroll{flex:1;overflow-y:auto;padding:calc(env(safe-area-inset-top) + 18px) 20px 120px}
+.brand{display:flex;align-items:center;justify-content:center;gap:10px;min-height:34px}
+.brand img{height:34px;width:auto;display:none}
+.brand.has img{display:block}
+.brand span{font-size:13px;letter-spacing:.02em;color:var(--mute)}
+.brand.has span{display:none}
+h1{font-family:var(--serif);font-weight:700;font-size:44px;line-height:1.05;margin:6px 0 4px;text-align:center;
+  background:linear-gradient(180deg,#FFF3D1 0%,var(--gold) 60%,var(--gold2) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{text-align:center;color:var(--mute);margin:0 0 6px;font-size:15px}
+.hang{position:relative;height:min(48vh,420px);margin:8px 0 18px;display:flex;justify-content:center}
+.hang::before{content:"";position:absolute;left:-20px;right:-20px;top:14px;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(232,194,106,.55) 20%,rgba(232,194,106,.55) 80%,transparent);transform:rotate(-1.2deg)}
+.swing{position:relative;height:100%;padding-top:22px;transform-origin:50% 14px;animation:sway 5s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:rotate(-2.2deg)}50%{transform:rotate(1.6deg)}}
+.swing canvas{display:block;height:100%;width:auto;border-radius:4px;box-shadow:0 22px 40px rgba(0,0,0,.5),0 2px 0 rgba(255,255,255,.08) inset}
+.clip{position:absolute;left:50%;top:4px;width:34px;height:30px;margin-left:-17px;border-radius:6px 6px 4px 4px;
+  background:linear-gradient(180deg,#FBE7B0,var(--gold) 45%,var(--gold2));box-shadow:0 3px 8px rgba(0,0,0,.4)}
+.clip::after{content:"";position:absolute;left:6px;right:6px;top:12px;height:2px;background:rgba(80,55,10,.35);border-radius:2px}
+
+.card{background:var(--card);border:1px solid var(--cardLine);border-radius:22px;padding:18px 16px;margin-bottom:14px;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.card h2{font-family:var(--serif);font-weight:700;font-size:17px;margin:0 0 12px;color:var(--ink)}
+.layouts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lay{min-height:92px;border-radius:16px;border:1.5px solid var(--cardLine);background:rgba(255,255,255,.04);display:flex;align-items:center;gap:12px;padding:12px 14px;text-align:left}
+.lay.on{border-color:var(--gold);background:rgba(232,194,106,.12)}
+.lay b{display:block;font-family:var(--serif);font-size:16px}
+.lay small{color:var(--mute);font-size:13px}
+.ico{flex:none;display:grid;gap:3px;padding:4px;border-radius:4px;background:var(--ink)}
+.ico i{background:#3A4670;border-radius:2px}
+.ico.strip{grid-template-rows:repeat(4,12px);width:22px}
+.ico.grid{grid-template-columns:repeat(2,14px);grid-template-rows:repeat(2,18px)}
+.lay.on .ico{background:var(--gold)}
+.frames{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none}
+.frames::-webkit-scrollbar{display:none}
+.fr{flex:none;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:0;padding:0;width:78px}
+.fr canvas{height:112px;width:auto;max-width:78px;border-radius:6px;outline:2px solid transparent;outline-offset:3px;box-shadow:0 6px 14px rgba(0,0,0,.35)}
+.fr.on canvas{outline-color:var(--gold)}
+.fr span{font-size:13px;color:var(--mute);white-space:nowrap}
+.fr.on span{color:var(--gold)}
+input[type=text]{width:100%;min-height:52px;border-radius:14px;border:1.5px solid var(--cardLine);background:rgba(0,0,0,.18);color:var(--ink);font:inherit;font-size:17px;padding:0 16px}
+input[type=text]:focus{outline:none;border-color:var(--gold)}
+.hint{font-size:13px;color:var(--mute);margin:8px 2px 0}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:rgba(0,0,0,.22);border-radius:14px;padding:4px}
+.seg button{min-height:46px;border:0;border-radius:11px;background:none;font-size:16px;color:var(--mute)}
+.seg button.on{background:var(--ink);color:var(--deep);font-weight:700}
+.dock{position:fixed;left:0;right:0;bottom:0;padding:16px 20px calc(env(safe-area-inset-bottom) + 16px);
+  background:linear-gradient(180deg,transparent,rgba(15,12,30,.85) 40%)}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:60px;border-radius:30px;border:0;font-family:var(--serif);font-weight:700;font-size:19px;
+  color:#2A1A04;background:linear-gradient(180deg,#FBE3A3,var(--gold) 50%,var(--gold2));box-shadow:0 10px 24px rgba(201,154,62,.35),0 1px 0 rgba(255,255,255,.6) inset}
+.btn.ghost{background:rgba(255,255,255,.08);color:var(--ink);box-shadow:none;border:1px solid var(--cardLine)}
+.btn:active,.lay:active,.fr:active{transform:scale(.97)}
+.btn:disabled{opacity:.7}
+
+/* ---------- 촬영 ---------- */
+#shoot{background:var(--deep);padding:calc(env(safe-area-inset-top) + 10px) 0 calc(env(safe-area-inset-bottom) + 16px)}
+.bar{display:flex;align-items:center;justify-content:space-between;padding:0 14px 10px}
+.pill{min-height:44px;border-radius:22px;border:1px solid var(--cardLine);background:rgba(255,255,255,.07);padding:0 16px;font-size:15px}
+.dots{display:flex;gap:9px}
+.dots i{width:11px;height:11px;border-radius:50%;background:#2F3757}
+.dots i.done{background:var(--gold)}
+.dots i.now{background:var(--ink);box-shadow:0 0 0 4px rgba(247,241,227,.18)}
+.stage{flex:1;display:flex;align-items:center;justify-content:center;padding:0 12px;position:relative;min-height:0}
+.vp{position:relative;overflow:hidden;border-radius:14px;background:#000;box-shadow:0 0 0 1.5px rgba(232,194,106,.5),0 20px 40px rgba(0,0,0,.5)}
 .vp video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .vp video.mirror{transform:scaleX(-1)}
-.count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Jua,sans-serif;font-size:140px;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.6);pointer-events:none}
+.cutno{position:absolute;left:12px;top:10px;font-family:var(--serif);font-weight:700;font-size:15px;color:#fff;background:rgba(0,0,0,.35);padding:3px 10px;border-radius:12px}
+.count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;font-size:150px;color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.55);pointer-events:none}
 .count.pop{animation:pop .9s ease-out}
-@keyframes pop{0%{transform:scale(1.5);opacity:0}25%{transform:scale(1);opacity:1}100%{opacity:.85}}
-.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+@keyframes pop{0%{transform:scale(1.6);opacity:0}25%{transform:scale(1);opacity:1}100%{opacity:.85}}
+.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:5}
 .flash.go{animation:fl .45s ease-out}
 @keyframes fl{0%{opacity:.95}100%{opacity:0}}
-.msg{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);text-align:center;background:rgba(11,18,38,.92);border-radius:16px;padding:22px 16px;display:none}
+.msg{position:absolute;left:18px;right:18px;top:50%;transform:translateY(-50%);text-align:center;background:rgba(15,24,48,.95);border:1px solid var(--cardLine);border-radius:20px;padding:22px 18px;display:none}
 .msg.on{display:block}
-.thumbs{display:flex;gap:8px;padding:12px 16px 0;justify-content:center}
-.thumbs div{width:56px;aspect-ratio:var(--ar,4/3);border-radius:6px;background:#1C2640 center/cover;border:1.5px solid #2b3858}
-.thumbs div.now{border-color:#fff}
-.ctrl{padding:14px 16px 0;display:flex;gap:10px}
-.ctrl .btn{flex:1}
-.ctrl .iconbtn{min-width:56px;min-height:56px;border-radius:16px;font-size:14px}
-/* result */
-#result .pic{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:4px 0 8px}
-#result .pic img{max-height:100%;max-width:100%;border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
-.retake{display:flex;gap:8px;justify-content:center}
-.retake button{flex:1;max-width:84px;min-height:44px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel) center/cover;color:#fff;font:inherit;font-size:12px;font-weight:700;text-shadow:0 1px 4px #000;aspect-ratio:4/3}
-.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translateX(-50%);background:#fff;color:#14213D;padding:12px 18px;border-radius:24px;font-weight:700;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:9}
+.thumbs{display:flex;gap:8px;padding:14px 16px 0;justify-content:center}
+.thumbs div{width:58px;border-radius:6px;background:#1A2340 center/cover;border:1.5px solid #2B3558}
+.thumbs div.now{border-color:var(--ink)}
+.ctrl{padding:14px 20px 0}
+
+/* ---------- 결과 ---------- */
+#result{padding:calc(env(safe-area-inset-top) + 14px) 20px calc(env(safe-area-inset-bottom) + 14px)}
+.done{font-family:var(--serif);font-weight:700;font-size:22px;text-align:center;margin:0 0 8px;color:var(--gold)}
+#result .pic{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:2px 0 12px}
+#result .pic img{max-height:100%;max-width:100%;border-radius:4px;box-shadow:0 18px 36px rgba(0,0,0,.5)}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--cardLine);background:rgba(255,255,255,.05);font-size:15px;color:var(--mute)}
+.tabs button.on{background:var(--ink);color:var(--deep);font-weight:700;border-color:var(--ink)}
+.panel{min-height:76px;display:flex;align-items:center}
+.retake{display:flex;gap:8px;width:100%}
+.retake button{flex:1;min-height:58px;border-radius:10px;border:1.5px solid var(--cardLine);background:#1A2340 center/cover;color:#fff;font-size:13px;font-weight:700;text-shadow:0 1px 4px #000}
+.chips{display:flex;gap:8px;overflow-x:auto;width:100%;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:46px;padding:0 16px;border-radius:23px;border:1.5px solid var(--cardLine);background:rgba(255,255,255,.05);font-size:15px;display:flex;align-items:center;gap:8px}
+.chip.on{border-color:var(--gold);color:var(--gold)}
+.sw{width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.35)}
+.row{display:flex;gap:10px;margin-top:12px}
+.row .ghost{max-width:36%}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 100px);transform:translateX(-50%);background:var(--ink);color:var(--deep);padding:12px 20px;border-radius:24px;font-weight:700;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:9}
 .toast.on{opacity:1}
-@media (max-height:640px){#home .preview{height:38vh}h1{font-size:32px}}
-@media (prefers-reduced-motion:reduce){.count.pop,.flash.go{animation:none}}
+@media (max-height:680px){.hang{height:40vh}h1{font-size:36px}}
+@media (prefers-reduced-motion:reduce){.swing,.count.pop,.flash.go{animation:none}}
 </style>
 </head>
 <body>
+<canvas id="snow"></canvas>
 
 <section class="screen" id="home">
   <div class="scroll">
-    <div class="top">
-      <div class="preview"><canvas id="pv"></canvas></div>
-      <div class="intro">
-        <h1>연말<br>네컷</h1>
-        <p class="lead">네 번 웃으면<br>한 장이 완성돼요</p>
-      </div>
+    <div class="brand" id="brand"><img id="brandLogo" alt="더다붓"><span>THE 다붓 · 연말 포토부스</span></div>
+    <h1>연말네컷</h1>
+    <p class="sub">한 해의 웃음을 네 컷에 담아요</p>
+    <div class="hang"><div class="swing"><div class="clip"></div><canvas id="pv"></canvas></div></div>
+
+    <div class="card">
+      <h2>사진 모양</h2>
+      <div class="layouts" id="layouts"></div>
     </div>
-    <div class="label">모양</div>
-    <div class="chips" id="layouts"></div>
-    <div class="label">프레임</div>
-    <div class="chips" id="themes"></div>
-    <div class="label">사진 아래 글씨</div>
-    <input type="text" id="title" maxlength="18" placeholder="예) 2026 우리의 연말">
-    <div class="label">타이머</div>
-    <div class="chips" id="timers"></div>
+    <div class="card">
+      <h2>프레임</h2>
+      <div class="frames" id="frames"></div>
+    </div>
+    <div class="card">
+      <h2>사진 아래 글씨</h2>
+      <input type="text" id="title" maxlength="16" placeholder="예) 2026 더다붓 연말">
+      <p class="hint">오늘 날짜는 자동으로 함께 들어가요.</p>
+    </div>
+    <div class="card">
+      <h2>타이머</h2>
+      <div class="seg" id="timers"></div>
+    </div>
   </div>
-  <div class="foot"><button class="btn" id="goShoot">촬영하러 가기</button></div>
+  <div class="dock"><button class="btn" id="goShoot">촬영 시작하기</button></div>
 </section>
 
 <section class="screen" id="shoot">
   <div class="bar">
-    <button class="iconbtn" id="cancel">← 그만</button>
+    <button class="pill" id="cancel">그만하기</button>
     <div class="dots" id="dots"></div>
-    <button class="iconbtn" id="flip">카메라 전환</button>
+    <button class="pill" id="flip">앞뒤 전환</button>
   </div>
   <div class="stage">
     <div class="vp" id="vp">
       <video id="video" playsinline muted autoplay></video>
+      <div class="cutno" id="cutno"></div>
       <div class="count" id="count"></div>
     </div>
     <div class="msg" id="msg">
@@ -114,16 +186,21 @@ input[type=text]:focus{outline:2px solid var(--gold);outline-offset:1px}
 </section>
 
 <section class="screen" id="result">
+  <p class="done">완성! 정말 잘 나왔어요</p>
   <div class="pic"><img id="out" alt="완성된 네컷 사진"></div>
-  <div class="label" style="margin-top:0">마음에 안 드는 컷은 눌러서 다시 찍기</div>
-  <div class="retake" id="retake"></div>
-  <div class="chips" id="themes2" style="margin-top:10px"></div>
-  <div class="chips" id="filters" style="margin-top:8px"></div>
-  <div class="row" style="margin-top:12px">
-    <button class="btn" id="save">갤러리에 저장</button>
-    <button class="btn ghost" id="share" style="max-width:34%">보내기</button>
+  <div class="tabs" id="tabs">
+    <button data-t="frame" class="on">프레임</button><button data-t="filter">필터</button><button data-t="retake">다시 찍기</button>
   </div>
-  <button class="btn ghost" id="again" style="margin-top:10px;min-height:48px;font-size:16px">처음부터 새로 찍기</button>
+  <div class="panel">
+    <div class="chips" id="pFrame"></div>
+    <div class="chips" id="pFilter" hidden></div>
+    <div class="retake" id="pRetake" hidden></div>
+  </div>
+  <div class="row">
+    <button class="btn" id="save">갤러리에 저장</button>
+    <button class="btn ghost" id="share">보내기</button>
+  </div>
+  <button class="btn ghost" id="again" style="margin-top:10px;min-height:50px;font-size:16px">처음 화면으로</button>
 </section>
 
 <div class="flash" id="flash"></div>
@@ -133,44 +210,60 @@ input[type=text]:focus{outline:2px solid var(--gold);outline-offset:1px}
 {
 const $ = id => document.getElementById(id);
 
+/* 로고: www/logo.png 가 있으면 첫 화면과 사진 프레임에 들어가요.
+   LOGO_TINT 가 true 이면 로고를 프레임 글씨색 한 가지로 칠해요 (어두운/밝은 프레임 모두에서 잘 보이게). */
+const LOGO_SRC = 'logo.png';
+const LOGO_TINT = true;
+
 const THEMES = [
-  {id:'snow',  name:'눈 오는 밤', bg:'#14213D', bg2:'#22345E', ink:'#FFFFFF', sub:'#F2C14E', deco:'snow'},
-  {id:'xmas',  name:'크리스마스', bg:'#0E4D35', bg2:'#146343', ink:'#FFFFFF', sub:'#F4D35E', deco:'xmas'},
-  {id:'champ', name:'샴페인',     bg:'#F5EAD7', bg2:'#EAD6B4', ink:'#3A2A12', sub:'#A87A28', deco:'confetti'},
-  {id:'pink',  name:'핑크 파티',  bg:'#F6C3D5', bg2:'#EEA7C0', ink:'#5A1F37', sub:'#FFFFFF', deco:'sparkle'},
-  {id:'white', name:'화이트',     bg:'#FFFFFF', bg2:'#ECECEC', ink:'#111111', sub:'#8A8A8A', deco:'none'},
-  {id:'black', name:'블랙',       bg:'#111111', bg2:'#262626', ink:'#FFFFFF', sub:'#9A9A9A', deco:'none'}
+  {id:'night', name:'성탄의 밤', bg:'#16224A', bg2:'#2A2050', ink:'#FFF8E8', sub:'#E8C26A', deco:'snow'},
+  {id:'xmas',  name:'크리스마스', bg:'#0F4A34', bg2:'#0B3A29', ink:'#FFF8E8', sub:'#F0C95C', deco:'xmas'},
+  {id:'wine',  name:'와인 레드',  bg:'#6A1C2E', bg2:'#4A1220', ink:'#FFF1E0', sub:'#E8C26A', deco:'gold'},
+  {id:'champ', name:'샴페인 골드', bg:'#F7EDDA', bg2:'#EBD7B2', ink:'#3B2A10', sub:'#A8792A', deco:'confetti'},
+  {id:'flake', name:'눈꽃 화이트', bg:'#FFFFFF', bg2:'#E9F0F8', ink:'#1F2A44', sub:'#6F8DBA', deco:'flakes'},
+  {id:'rose',  name:'로즈 핑크',  bg:'#F6D3DC', bg2:'#EDB6C5', ink:'#5A2235', sub:'#FFFFFF', deco:'sparkle'}
 ];
 const FILTERS = [
   {id:'none', name:'기본',     f:'none'},
-  {id:'bw',   name:'흑백',     f:'grayscale(1) contrast(1.15) brightness(1.05)'},
+  {id:'soft', name:'뽀샤시',   f:'brightness(1.12) contrast(.9) saturate(1.08)'},
   {id:'warm', name:'따뜻하게', f:'sepia(.22) saturate(1.2) brightness(1.04)'},
-  {id:'soft', name:'뽀샤시',   f:'brightness(1.12) contrast(.9) saturate(1.08)'}
+  {id:'bw',   name:'흑백',     f:'grayscale(1) contrast(1.15) brightness(1.05)'}
 ];
-const LAYOUTS = [{id:'strip', name:'세로 4컷'}, {id:'grid', name:'2×2 네모'}];
+const LAYOUTS = [{id:'strip', name:'세로 4컷', note:'길쭉한 스트립'}, {id:'grid', name:'2×2 네모', note:'인화용 4×6'}];
 const TIMERS = [3, 5, 10];
 
 let saved = {};
-try { saved = JSON.parse(localStorage.getItem('y4c') || '{}'); } catch (e) {}
+try { saved = JSON.parse(localStorage.getItem('y4c2') || '{}'); } catch (e) {}
 const S = {
-  layout: saved.layout || 'strip', theme: saved.theme || 'snow', filter: saved.filter || 'none',
-  timer: saved.timer || 5, title: saved.title ?? '2026 우리의 연말',
-  facing: 'user', shots: [null, null, null, null], queue: [], running: false, stream: null
+  layout: saved.layout || 'strip', theme: THEMES.some(t => t.id === saved.theme) ? saved.theme : 'night', filter: saved.filter || 'none',
+  timer: saved.timer || 5, title: saved.title ?? '2026 더다붓 연말',
+  facing: 'user', shots: [null, null, null, null], queue: [], running: false, stream: null, fromResult: false
 };
-const remember = () => { try { localStorage.setItem('y4c', JSON.stringify({layout:S.layout, theme:S.theme, filter:S.filter, timer:S.timer, title:S.title})); } catch (e) {} };
+const remember = () => { try { localStorage.setItem('y4c2', JSON.stringify({layout:S.layout, theme:S.theme, filter:S.filter, timer:S.timer, title:S.title})); } catch (e) {} };
 
-/* ---------- 배치 계산 ---------- */
+/* ---------- 로고 ---------- */
+let logo = null; const tinted = {};
+function logoFor(color) {
+  if (!logo) return null;
+  if (!LOGO_TINT) return logo;
+  if (tinted[color]) return tinted[color];
+  const c = document.createElement('canvas'); c.width = logo.naturalWidth; c.height = logo.naturalHeight;
+  const x = c.getContext('2d'); x.drawImage(logo, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = color; x.fillRect(0, 0, c.width, c.height);
+  return (tinted[color] = c);
+}
+
+/* ---------- 배치 ---------- */
 function geo(layout) {
   if (layout === 'grid') {
-    const W = 1200, H = 1800, pad = 48, gap = 24, foot = 250;
+    const W = 1200, H = 1800, pad = 50, gap = 22, foot = 270;
     const w = (W - pad * 2 - gap) / 2, h = (H - pad - foot - gap) / 2;
     const cuts = [0, 1, 2, 3].map(i => ({x: pad + (i % 2) * (w + gap), y: pad + Math.floor(i / 2) * (h + gap), w, h}));
-    return {W, H, cuts, foot, tSize: 74, dSize: 36};
+    return {W, H, cuts, foot, tSize: 66, dSize: 32, lH: 70};
   }
-  const W = 1200, pad = 60, gap = 30, w = W - pad * 2, h = Math.round(w * 3 / 4), foot = 300;
+  const W = 1200, pad = 64, gap = 30, w = W - pad * 2, h = Math.round(w * 3 / 4), foot = 330;
   const H = pad + h * 4 + gap * 3 + foot;
   const cuts = [0, 1, 2, 3].map(i => ({x: pad, y: pad + i * (h + gap), w, h}));
-  return {W, H, cuts, foot, tSize: 86, dSize: 40};
+  return {W, H, cuts, foot, tSize: 78, dSize: 36, lH: 84};
 }
 const cutAR = () => { const c = geo(S.layout).cuts[0]; return c.w / c.h; };
 
@@ -178,161 +271,171 @@ const cutAR = () => { const c = geo(S.layout).cuts[0]; return c.w / c.h; };
 function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function star(ctx, x, y, r, n, inner) {
   ctx.beginPath();
-  for (let i = 0; i < n * 2; i++) {
-    const a = Math.PI / n * i - Math.PI / 2, rr = i % 2 ? r * inner : r;
-    ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
-  }
+  for (let i = 0; i < n * 2; i++) { const a = Math.PI / n * i - Math.PI / 2, q = i % 2 ? r * inner : r; ctx.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); }
   ctx.closePath(); ctx.fill();
 }
+function flake(ctx, x, y, r) {
+  for (let k = 0; k < 6; k++) {
+    const a = Math.PI / 3 * k, ex = x + Math.cos(a) * r, ey = y + Math.sin(a) * r;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, ey); ctx.stroke();
+    const mx = x + Math.cos(a) * r * .6, my = y + Math.sin(a) * r * .6;
+    for (const s of [-1, 1]) { const b = a + s * .6; ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(b) * r * .3, my + Math.sin(b) * r * .3); ctx.stroke(); }
+  }
+}
 function deco(ctx, t, W, H) {
-  const R = rng(t.id.length * 977 + W);
+  const R = rng(t.id.charCodeAt(0) * 131 + W);
+  ctx.lineCap = 'round';
   if (t.deco === 'snow') {
-    for (let i = 0; i < 260; i++) { ctx.globalAlpha = .25 + R() * .7; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(R() * W, R() * H, 2 + R() * 6, 0, 7); ctx.fill(); }
-    ctx.globalAlpha = .9; ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-    for (let i = 0; i < 7; i++) {
-      const x = R() * W, y = H - R() * 260, r = 18 + R() * 22;
-      for (let k = 0; k < 6; k++) { const a = Math.PI / 3 * k; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); ctx.stroke(); }
-    }
+    for (let i = 0; i < 240; i++) { ctx.globalAlpha = .2 + R() * .7; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(R() * W, R() * H, 2 + R() * 5, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = .95; ctx.fillStyle = t.sub;
+    for (let i = 0; i < 14; i++) star(ctx, R() * W, R() * H, 6 + R() * 9, 4, .28);
   } else if (t.deco === 'xmas') {
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < 110; i++) {
       ctx.globalAlpha = .55 + R() * .45;
-      if (R() < .5) { ctx.fillStyle = '#F4D35E'; star(ctx, R() * W, R() * H, 8 + R() * 14, 5, .45); }
-      else { ctx.fillStyle = R() < .6 ? '#E4572E' : '#fff'; ctx.beginPath(); ctx.arc(R() * W, R() * H, 4 + R() * 6, 0, 7); ctx.fill(); }
+      if (R() < .5) { ctx.fillStyle = '#F0C95C'; star(ctx, R() * W, R() * H, 7 + R() * 12, 5, .45); }
+      else { ctx.fillStyle = R() < .6 ? '#D8453A' : '#fff'; ctx.beginPath(); ctx.arc(R() * W, R() * H, 4 + R() * 6, 0, 7); ctx.fill(); }
     }
+  } else if (t.deco === 'gold') {
+    for (let i = 0; i < 140; i++) { ctx.globalAlpha = .35 + R() * .6; ctx.fillStyle = R() < .7 ? '#E8C26A' : '#fff'; ctx.beginPath(); ctx.arc(R() * W, R() * H, 1.5 + R() * 4, 0, 7); ctx.fill(); }
+    ctx.fillStyle = '#F3D488'; for (let i = 0; i < 20; i++) { ctx.globalAlpha = .9; star(ctx, R() * W, R() * H, 7 + R() * 12, 4, .28); }
   } else if (t.deco === 'confetti') {
     const cs = ['#C9962F', '#E3BE6A', '#8C6420', '#ffffff'];
-    for (let i = 0; i < 220; i++) {
-      ctx.save(); ctx.globalAlpha = .6 + R() * .4; ctx.fillStyle = cs[Math.floor(R() * cs.length)];
-      ctx.translate(R() * W, R() * H); ctx.rotate(R() * 6.3); ctx.fillRect(-9, -4, 18, 8); ctx.restore();
-    }
+    for (let i = 0; i < 220; i++) { ctx.save(); ctx.globalAlpha = .6 + R() * .4; ctx.fillStyle = cs[Math.floor(R() * cs.length)]; ctx.translate(R() * W, R() * H); ctx.rotate(R() * 6.3); ctx.fillRect(-9, -4, 18, 8); ctx.restore(); }
+  } else if (t.deco === 'flakes') {
+    ctx.strokeStyle = '#9DB4D6'; ctx.lineWidth = 3;
+    for (let i = 0; i < 46; i++) { ctx.globalAlpha = .35 + R() * .5; flake(ctx, R() * W, R() * H, 10 + R() * 18); }
+    ctx.fillStyle = '#B9CBE4'; for (let i = 0; i < 120; i++) { ctx.globalAlpha = .4 + R() * .4; ctx.beginPath(); ctx.arc(R() * W, R() * H, 2 + R() * 3, 0, 7); ctx.fill(); }
   } else if (t.deco === 'sparkle') {
-    for (let i = 0; i < 90; i++) { ctx.globalAlpha = .55 + R() * .45; ctx.fillStyle = '#fff'; star(ctx, R() * W, R() * H, 8 + R() * 20, 4, .3); }
+    for (let i = 0; i < 90; i++) { ctx.globalAlpha = .55 + R() * .45; ctx.fillStyle = '#fff'; star(ctx, R() * W, R() * H, 8 + R() * 18, 4, .3); }
   }
   ctx.globalAlpha = 1;
 }
-function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); }
 function placeholder(ctx, c, t, i) {
   ctx.fillStyle = t.bg2; ctx.fillRect(c.x, c.y, c.w, c.h);
-  ctx.fillStyle = t.ink; ctx.globalAlpha = .16;
+  ctx.fillStyle = t.ink; ctx.globalAlpha = .14;
   const cx = c.x + c.w / 2, s = Math.min(c.w, c.h);
   ctx.beginPath(); ctx.arc(cx, c.y + c.h * .42, s * .17, 0, 7); ctx.fill();
   ctx.beginPath(); ctx.ellipse(cx, c.y + c.h * 1.02, s * .36, s * .38, 0, Math.PI, 0); ctx.fill();
-  ctx.globalAlpha = .5; ctx.font = `${Math.round(s * .12)}px Jua, sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.globalAlpha = .45; ctx.font = `700 ${Math.round(s * .11)}px "Gowun Batang", serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
   ctx.fillText(String(i + 1), c.x + s * .06, c.y + s * .05); ctx.globalAlpha = 1;
 }
-function today() { const d = new Date(); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`; }
+function today() { const d = new Date(); return `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, '0')}. ${String(d.getDate()).padStart(2, '0')}`; }
 
 /* ---------- 합성 ---------- */
-function compose(cv, shots) {
-  const g = geo(S.layout), t = THEMES.find(x => x.id === S.theme), f = FILTERS.find(x => x.id === S.filter);
-  cv.width = g.W; cv.height = g.H;
-  const ctx = cv.getContext('2d');
+function compose(cv, shots, themeId, scale) {
+  scale = scale || 1;
+  const g = geo(S.layout), t = THEMES.find(x => x.id === (themeId || S.theme)), f = FILTERS.find(x => x.id === S.filter);
+  cv.width = Math.round(g.W * scale); cv.height = Math.round(g.H * scale);
+  const ctx = cv.getContext('2d'); ctx.setTransform(scale, 0, 0, scale, 0, 0);
   const grd = ctx.createLinearGradient(0, 0, 0, g.H); grd.addColorStop(0, t.bg); grd.addColorStop(1, t.bg2);
   ctx.fillStyle = grd; ctx.fillRect(0, 0, g.W, g.H);
   deco(ctx, t, g.W, g.H);
   g.cuts.forEach((c, i) => {
-    ctx.save(); rr(ctx, c.x, c.y, c.w, c.h, 14); ctx.clip();
+    ctx.save(); rr(ctx, c.x, c.y, c.w, c.h, 10); ctx.clip();
     if (shots[i]) { ctx.filter = f.f; ctx.drawImage(shots[i], c.x, c.y, c.w, c.h); ctx.filter = 'none'; }
     else placeholder(ctx, c, t, i);
     ctx.restore();
   });
-  const top = g.H - g.foot;
+  const top = g.H - g.foot, L = logoFor(t.ink);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = t.ink; ctx.font = `${g.tSize}px Jua, sans-serif`;
-  ctx.fillText(S.title || ' ', g.W / 2, top + g.foot * .43, g.W - 120);
-  ctx.fillStyle = t.sub; ctx.font = `600 ${g.dSize}px system-ui, sans-serif`;
-  ctx.fillText(today(), g.W / 2, top + g.foot * .73);
+  let ty = top + g.foot * .42, dy = top + g.foot * .70;
+  if (L) {
+    const lh = g.lH, lw = Math.min(lh * L.width / L.height, g.W * .5);
+    const lh2 = lw * L.height / L.width;
+    ctx.drawImage(L, (g.W - lw) / 2, top + g.foot * .08, lw, lh2);
+    ty = top + g.foot * .08 + lh2 + g.tSize * .75; dy = ty + g.tSize * .85;
+  }
+  ctx.fillStyle = t.ink; ctx.font = `700 ${g.tSize}px "Gowun Batang", serif`;
+  ctx.fillText(S.title || ' ', g.W / 2, ty, g.W - 140);
+  ctx.fillStyle = t.sub; ctx.font = `${g.dSize}px "Gowun Dodum", sans-serif`;
+  ctx.fillText(today(), g.W / 2, dy);
   return cv;
 }
 
 /* ---------- 홈 ---------- */
-function chips(el, items, cur, onPick, swatch) {
-  el.innerHTML = items.map(it => `<button class="chip${it.id == cur ? ' on' : ''}" data-id="${it.id}">${swatch ? `<span class="sw" style="background:${it.bg}"></span>` : ''}${it.name}</button>`).join('');
-  el.onclick = e => { const b = e.target.closest('.chip'); if (!b) return; onPick(b.dataset.id); };
-}
 function drawHome() {
-  chips($('layouts'), LAYOUTS, S.layout, v => { S.layout = v; S.shots = [null, null, null, null]; remember(); drawHome(); });
-  chips($('themes'), THEMES, S.theme, v => { S.theme = v; remember(); drawHome(); }, true);
-  chips($('timers'), TIMERS.map(n => ({id: n, name: n + '초'})), S.timer, v => { S.timer = +v; remember(); drawHome(); });
-  compose($('pv'), S.shots);
+  $('layouts').innerHTML = LAYOUTS.map(l => `<button class="lay${l.id === S.layout ? ' on' : ''}" data-id="${l.id}"><span class="ico ${l.id}">${'<i></i>'.repeat(4)}</span><span><b>${l.name}</b><small>${l.note}</small></span></button>`).join('');
+  $('frames').innerHTML = THEMES.map(t => `<button class="fr${t.id === S.theme ? ' on' : ''}" data-id="${t.id}"><canvas></canvas><span>${t.name}</span></button>`).join('');
+  [...$('frames').children].forEach((b, i) => compose(b.querySelector('canvas'), S.shots, THEMES[i].id, S.layout === 'strip' ? .09 : .16));
+  $('timers').innerHTML = TIMERS.map(n => `<button class="${n === S.timer ? 'on' : ''}" data-id="${n}">${n}초</button>`).join('');
+  compose($('pv'), S.shots, null, .5); fontCheck();
 }
+$('layouts').onclick = e => { const b = e.target.closest('.lay'); if (!b) return; if (S.layout !== b.dataset.id) S.shots = [null, null, null, null]; S.layout = b.dataset.id; remember(); drawHome(); };
+$('frames').onclick = e => {
+  const b = e.target.closest('.fr'); if (!b) return; S.theme = b.dataset.id; remember();
+  [...$('frames').children].forEach(x => x.classList.toggle('on', x === b)); compose($('pv'), S.shots, null, .5);
+};
+$('timers').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.timer = +b.dataset.id; remember(); [...$('timers').children].forEach(x => x.classList.toggle('on', x === b)); };
 $('title').value = S.title;
-$('title').oninput = e => { S.title = e.target.value; remember(); compose($('pv'), S.shots); };
+$('title').oninput = e => { S.title = e.target.value; remember(); compose($('pv'), S.shots, null, .5); fontCheck(); };
 $('goShoot').onclick = () => { S.shots = [null, null, null, null]; S.queue = [0, 1, 2, 3]; S.fromResult = false; location.hash = 'shoot'; };
+
+/* ---------- 눈 내리는 배경 ---------- */
+const sc = $('snow'), sx = sc.getContext('2d'); let flakes = [], snowOn = false;
+function sizeSnow() { const d = Math.min(devicePixelRatio || 1, 2); sc.width = innerWidth * d; sc.height = innerHeight * d; sx.setTransform(d, 0, 0, d, 0, 0);
+  flakes = Array.from({length: 46}, () => ({x: Math.random() * innerWidth, y: Math.random() * innerHeight, r: .8 + Math.random() * 2.2, v: .25 + Math.random() * .6, w: Math.random() * 6})); }
+function snowTick() {
+  if (!snowOn) return;
+  sx.clearRect(0, 0, innerWidth, innerHeight); sx.fillStyle = 'rgba(255,255,255,.55)';
+  for (const f of flakes) { f.y += f.v; f.w += .01; f.x += Math.sin(f.w) * .3; if (f.y > innerHeight + 4) { f.y = -4; f.x = Math.random() * innerWidth; } sx.beginPath(); sx.arc(f.x, f.y, f.r, 0, 7); sx.fill(); }
+  requestAnimationFrame(snowTick);
+}
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function setSnow(on) { if (still) on = false; if (on && !snowOn) { snowOn = true; snowTick(); } else if (!on) { snowOn = false; sx.clearRect(0, 0, innerWidth, innerHeight); } }
+sizeSnow();
 
 /* ---------- 소리 ---------- */
 let AC = null;
+const ac = () => (AC = AC || new (window.AudioContext || window.webkitAudioContext)());
 function beep(freq, dur, vol) {
-  try {
-    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
-    const o = AC.createOscillator(), g = AC.createGain();
-    o.frequency.value = freq; o.type = 'sine'; g.gain.value = vol || .15;
-    g.gain.exponentialRampToValueAtTime(.001, AC.currentTime + dur);
-    o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime + dur);
-  } catch (e) {}
+  try { const a = ac(), o = a.createOscillator(), g = a.createGain();
+    o.frequency.value = freq; g.gain.value = vol || .15; g.gain.exponentialRampToValueAtTime(.001, a.currentTime + dur);
+    o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime + dur); } catch (e) {}
 }
 function shutter() {
-  try {
-    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
-    const n = AC.sampleRate * .12, b = AC.createBuffer(1, n, AC.sampleRate), d = b.getChannelData(0);
+  try { const a = ac(), n = a.sampleRate * .12, b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0);
     for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
-    const s = AC.createBufferSource(), g = AC.createGain(); g.gain.value = .5;
-    s.buffer = b; s.connect(g).connect(AC.destination); s.start();
-  } catch (e) {}
+    const s = a.createBufferSource(), g = a.createGain(); g.gain.value = .5; s.buffer = b; s.connect(g).connect(a.destination); s.start(); } catch (e) {}
 }
 
 /* ---------- 카메라 ---------- */
 const video = $('video');
 async function startCam() {
-  stopCam();
-  $('msg').classList.remove('on');
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { camFail('이 기기에서는 카메라를 쓸 수 없어요.'); return false; }
+  stopCam(); $('msg').classList.remove('on');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { camFail('이 기기에서는 카메라를 쓸 수 없어요.'); return; }
   try {
     S.stream = await navigator.mediaDevices.getUserMedia({audio: false, video: {facingMode: S.facing, width: {ideal: 1920}, height: {ideal: 1440}}});
-    video.srcObject = S.stream;
-    video.classList.toggle('mirror', S.facing === 'user');
+    video.srcObject = S.stream; video.classList.toggle('mirror', S.facing === 'user');
     await video.play().catch(() => {});
-    return true;
   } catch (e) {
     camFail(e && e.name === 'NotAllowedError'
       ? '카메라 권한이 꺼져 있어요. 설정 → 애플리케이션 → 연말네컷 → 권한에서 카메라를 허용해 주세요.'
       : '카메라를 켤 수 없어요. 다른 앱이 카메라를 쓰고 있는지 확인해 주세요.');
-    return false;
   }
 }
 function stopCam() { if (S.stream) { S.stream.getTracks().forEach(t => t.stop()); S.stream = null; } video.srcObject = null; }
 function camFail(text) { $('msgText').textContent = text; $('msg').classList.add('on'); }
-
 function sizeVP() {
-  const stage = document.querySelector('.stage'), ar = cutAR();
-  const maxW = stage.clientWidth - 20, maxH = stage.clientHeight;
-  let w = maxW, h = w / ar; if (h > maxH) { h = maxH; w = h * ar; }
+  const st = document.querySelector('.stage'), ar = cutAR();
+  let w = st.clientWidth - 24, h = w / ar; if (h > st.clientHeight) { h = st.clientHeight; w = h * ar; }
   $('vp').style.width = w + 'px'; $('vp').style.height = h + 'px';
 }
-function grab() {
-  const c = geo(S.layout).cuts[0], vw = video.videoWidth, vh = video.videoHeight;
-  if (!vw) return null;
-  const ar = c.w / c.h; let sw = vw, sh = vw / ar; if (sh > vh) { sh = vh; sw = vh * ar; }
+function cropTo(src, sw0, sh0, mirror) {
+  const c = geo(S.layout).cuts[0], ar = c.w / c.h;
+  let sw = sw0, sh = sw0 / ar; if (sh > sh0) { sh = sh0; sw = sh0 * ar; }
   const cv = document.createElement('canvas'); cv.width = Math.round(c.w); cv.height = Math.round(c.h);
-  const ctx = cv.getContext('2d');
-  if (S.facing === 'user') { ctx.translate(cv.width, 0); ctx.scale(-1, 1); }
-  ctx.drawImage(video, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
+  const x = cv.getContext('2d'); if (mirror) { x.translate(cv.width, 0); x.scale(-1, 1); }
+  x.drawImage(src, (sw0 - sw) / 2, (sh0 - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
   return cv;
 }
-function fromImage(img) {
-  const c = geo(S.layout).cuts[0], ar = c.w / c.h, iw = img.naturalWidth, ih = img.naturalHeight;
-  let sw = iw, sh = iw / ar; if (sh > ih) { sh = ih; sw = ih * ar; }
-  const cv = document.createElement('canvas'); cv.width = Math.round(c.w); cv.height = Math.round(c.h);
-  cv.getContext('2d').drawImage(img, (iw - sw) / 2, (ih - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
-  return cv;
-}
+const grab = () => video.videoWidth ? cropTo(video, video.videoWidth, video.videoHeight, S.facing === 'user') : null;
 
 function drawShootUI() {
   const cur = S.queue[0];
   $('dots').innerHTML = S.shots.map((s, i) => `<i class="${i === cur ? 'now' : s ? 'done' : ''}"></i>`).join('');
-  const ar = cutAR();
-  $('thumbs').style.setProperty('--ar', ar);
-  $('thumbs').innerHTML = S.shots.map((s, i) => `<div class="${i === cur ? 'now' : ''}" data-i="${i}"></div>`).join('');
+  $('cutno').textContent = cur == null ? '' : `${cur + 1} / 4`;
+  $('thumbs').innerHTML = S.shots.map((s, i) => `<div class="${i === cur ? 'now' : ''}" style="aspect-ratio:${cutAR()}"></div>`).join('');
   S.shots.forEach((s, i) => { if (s) $('thumbs').children[i].style.backgroundImage = `url(${s.toDataURL('image/jpeg', .6)})`; });
 }
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -340,24 +443,20 @@ let runId = 0;
 async function runSequence() {
   if (S.running) return;
   S.running = true; const my = ++runId;
-  $('startBtn').disabled = true; $('startBtn').textContent = '찍는 중…';
+  $('startBtn').disabled = true; $('startBtn').textContent = '웃어요!';
   const cnt = $('count');
   while (S.queue.length && my === runId) {
     drawShootUI();
     for (let n = S.timer; n > 0; n--) {
       if (my !== runId) return;
       cnt.textContent = n; cnt.classList.remove('pop'); void cnt.offsetWidth; cnt.classList.add('pop');
-      beep(n === 1 ? 1320 : 880, .12);
-      await wait(1000);
+      beep(n === 1 ? 1320 : 880, .12); await wait(1000);
     }
     if (my !== runId) return;
-    cnt.textContent = '';
-    const shot = grab();
-    shutter();
+    cnt.textContent = ''; const shot = grab(); shutter();
     const fl = $('flash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
     if (shot) { S.shots[S.queue[0]] = shot; S.queue.shift(); }
-    drawShootUI();
-    await wait(S.queue.length ? 900 : 500);
+    drawShootUI(); await wait(S.queue.length ? 900 : 500);
   }
   S.running = false;
   if (my === runId && !S.queue.length) { stopCam(); finishShoot(); }
@@ -367,43 +466,42 @@ function abortSequence() { runId++; S.running = false; $('count').textContent = 
 
 $('startBtn').onclick = () => { beep(660, .05, .01); runSequence(); };
 $('cancel').onclick = () => history.back();
-$('flip').onclick = async () => { S.facing = S.facing === 'user' ? 'environment' : 'user'; await startCam(); };
+$('flip').onclick = () => { S.facing = S.facing === 'user' ? 'environment' : 'user'; startCam(); };
 $('pickBtn').onclick = () => $('pick').click();
 $('pick').onchange = e => {
   const file = e.target.files[0]; if (!file) return;
   const img = new Image();
   img.onload = () => {
-    S.shots[S.queue.shift()] = fromImage(img); URL.revokeObjectURL(img.src); e.target.value = '';
-    if (S.queue.length) { drawShootUI(); $('msgText').textContent = `${S.queue[0] + 1}번째 컷 사진도 골라 주세요.`; }
-    else finishShoot();
+    S.shots[S.queue.shift()] = cropTo(img, img.naturalWidth, img.naturalHeight, false); URL.revokeObjectURL(img.src); e.target.value = '';
+    if (S.queue.length) { drawShootUI(); $('msgText').textContent = `${S.queue[0] + 1}번째 컷 사진도 골라 주세요.`; } else finishShoot();
   };
   img.src = URL.createObjectURL(file);
 };
 
 /* ---------- 결과 ---------- */
 const outCv = document.createElement('canvas');
+function chipRow(el, items, cur, swatch) { el.innerHTML = items.map(it => `<button class="chip${it.id === cur ? ' on' : ''}" data-id="${it.id}">${swatch ? `<span class="sw" style="background:${it.bg}"></span>` : ''}${it.name}</button>`).join(''); }
 function drawResult() {
-  compose(outCv, S.shots);
-  $('out').src = outCv.toDataURL('image/jpeg', .85);
-  const rt = $('retake');
-  rt.innerHTML = S.shots.map((s, i) => `<button data-i="${i}" style="aspect-ratio:${cutAR()}">${i + 1}번 다시</button>`).join('');
-  S.shots.forEach((s, i) => { if (s) rt.children[i].style.backgroundImage = `url(${s.toDataURL('image/jpeg', .5)})`; });
-  rt.onclick = e => { const b = e.target.closest('button'); if (!b) return; S.queue = [+b.dataset.i]; S.fromResult = true; location.hash = 'shoot'; };
-  chips($('themes2'), THEMES, S.theme, v => { S.theme = v; remember(); drawResult(); }, true);
-  chips($('filters'), FILTERS, S.filter, v => { S.filter = v; remember(); drawResult(); });
+  compose(outCv, S.shots); $('out').src = outCv.toDataURL('image/jpeg', .85); fontCheck();
+  chipRow($('pFrame'), THEMES, S.theme, true); chipRow($('pFilter'), FILTERS, S.filter);
+  $('pRetake').innerHTML = S.shots.map((s, i) => `<button data-i="${i}">${i + 1}번</button>`).join('');
+  S.shots.forEach((s, i) => { if (s) $('pRetake').children[i].style.backgroundImage = `url(${s.toDataURL('image/jpeg', .5)})`; });
 }
+$('tabs').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...$('tabs').children].forEach(x => x.classList.toggle('on', x === b));
+  $('pFrame').hidden = b.dataset.t !== 'frame'; $('pFilter').hidden = b.dataset.t !== 'filter'; $('pRetake').hidden = b.dataset.t !== 'retake';
+};
+$('pFrame').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; S.theme = b.dataset.id; remember(); drawResult(); };
+$('pFilter').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; S.filter = b.dataset.id; remember(); drawResult(); };
+$('pRetake').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.queue = [+b.dataset.i]; S.fromResult = true; location.hash = 'shoot'; };
 function fileName() { const d = new Date(), p = n => String(n).padStart(2, '0'); return `연말네컷_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`; }
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 2200); }
 function finalData() { compose(outCv, S.shots); return outCv.toDataURL('image/jpeg', .93); }
 $('save').onclick = () => {
   const data = finalData(), name = fileName();
-  if (window.PhotoSaver) {
-    const r = window.PhotoSaver.save(data, name);
-    toast(r === 'ok' ? '갤러리 › 연말네컷 앨범에 저장했어요' : '저장하지 못했어요: ' + r.replace('error:', ''));
-  } else {
-    const a = document.createElement('a'); a.href = data; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-    toast('사진을 내려받았어요');
-  }
+  if (window.PhotoSaver) { const r = window.PhotoSaver.save(data, name); toast(r === 'ok' ? '갤러리 › 연말네컷 앨범에 저장했어요' : '저장하지 못했어요: ' + r.replace('error:', '')); }
+  else { const a = document.createElement('a'); a.href = data; a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast('사진을 내려받았어요'); }
 };
 $('share').onclick = () => {
   const data = finalData(), name = fileName();
@@ -412,12 +510,13 @@ $('share').onclick = () => {
 };
 $('again').onclick = () => { S.shots = [null, null, null, null]; location.hash = 'home'; };
 
-/* ---------- 화면 전환 (뒤로 가기 버튼 지원) ---------- */
+/* ---------- 화면 전환 (휴대폰 뒤로 가기 지원) ---------- */
 function show(name) {
   if (name === 'shoot' && !S.queue.length) name = 'home';
   if (name === 'result' && S.shots.some(s => !s)) name = 'home';
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === name));
   if (name !== 'shoot') { abortSequence(); stopCam(); }
+  setSnow(name !== 'shoot');
   if (name === 'home') drawHome();
   if (name === 'shoot') {
     $('startBtn').disabled = false;
@@ -426,16 +525,23 @@ function show(name) {
   }
   if (name === 'result') drawResult();
 }
-window.addEventListener('hashchange', () => show(location.hash.slice(1) || 'home'));
-window.addEventListener('resize', () => { if ($('shoot').classList.contains('on')) sizeVP(); });
+addEventListener('hashchange', () => show(location.hash.slice(1) || 'home'));
+addEventListener('resize', () => { sizeSnow(); if ($('shoot').classList.contains('on')) sizeVP(); });
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && $('shoot').classList.contains('on')) { abortSequence(); stopCam(); $('startBtn').disabled = false; $('startBtn').textContent = '이어서 찍기'; }
-  else if (!document.hidden && $('shoot').classList.contains('on') && !S.stream) startCam();
+  if (!$('shoot').classList.contains('on')) return;
+  if (document.hidden) { abortSequence(); stopCam(); $('startBtn').disabled = false; $('startBtn').textContent = '이어서 찍기'; }
+  else if (!S.stream) startCam();
 });
+
+const img = new Image();
+img.onload = () => { logo = img; $('brandLogo').src = LOGO_SRC; $('brand').classList.add('has'); redraw(); };
+img.src = LOGO_SRC;
+function fontCheck() { try { const f = '700 40px "Gowun Batang"', t = (S.title || '가') + '0123456789'; if (!document.fonts.check(f, t)) document.fonts.load(f, t).then(redraw); } catch (e) {} }
+function redraw() { const cur = document.querySelector('.screen.on'); if (cur && cur.id === 'home') drawHome(); if (cur && cur.id === 'result') drawResult(); }
 
 if (location.hash && location.hash !== '#home') history.replaceState(null, '', '#home');
 show('home');
-(document.fonts && document.fonts.load ? document.fonts.load('40px Jua') : Promise.resolve()).then(() => { if ($('home').classList.contains('on')) drawHome(); }).catch(() => {});
+if (document.fonts) Promise.all([document.fonts.load('700 40px "Gowun Batang"', '연말네컷0123'), document.fonts.load('20px "Gowun Dodum"', '2026.')]).then(redraw).catch(() => {});
 }
 </script>
 </body>
