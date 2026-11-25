@@ -67,7 +67,29 @@ async function getCam() {
   return s;
 }
 async function wake() { try { if ('wakeLock' in navigator) lock = await navigator.wakeLock.request('screen'); } catch (e) {} }
-document.addEventListener('visibilitychange', () => { if (!document.hidden && started) { wake(); if (!conn || !conn.open) connect(); } });
+const camLive = () => stream && stream.getVideoTracks().some(t => t.readyState === 'live');
+// 화면이 꺼지거나 다른 앱에 다녀오면 아이폰이 카메라를 꺼요 → 돌아오면 카메라를 다시 켜고 패드에 화면을 다시 보내요
+async function revive(force) {
+  if (!started) return;
+  try { if (!camLive()) await getCam(); } catch (e) { st('err', '카메라를 다시 켜지 못했어요. 새로고침해 주세요.'); return; }
+  if (!conn || !conn.open) { connect(); return; }
+  const tr = stream.getVideoTracks()[0];
+  const pc = call && call.peerConnection, snd = pc && pc.getSenders().find(x => x.track && x.track.kind === 'video' || x.track === null);
+  const ok = pc && ['connected', 'completed', 'checking', 'new'].includes(pc.iceConnectionState);
+  if (!force && ok && snd) { try { await snd.replaceTrack(tr); return; } catch (e) {} }
+  try { call && call.close(); } catch (e) {}
+  call = peer.call('dadabut-y4c-' + code, stream, {metadata: {role: 'cam'}}); watchCall();
+}
+function watchCall() {
+  const pc = call && call.peerConnection; if (!pc) return;
+  pc.addEventListener('iceconnectionstatechange', () => {
+    const s = pc.iceConnectionState;
+    if (s === 'connected' || s === 'completed') st('ok', `패드에 화면을 보내는 중 · 코드 ${code}`);
+    if (s === 'failed' || s === 'disconnected') { st('err', '화면 연결이 끊겼어요. 다시 연결하는 중'); setTimeout(() => revive(true), 1500); }
+  });
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && started) { wake(); revive(false); } });
+setInterval(() => { if (started && !document.hidden && !camLive()) revive(false); }, 3000);
 
 $('go').onclick = async () => {
   if (!/^\d{4}$/.test(code)) { $('code').focus(); st('err', '패드 화면에 보이는 4자리 코드를 넣어 주세요'); return; }
@@ -81,7 +103,7 @@ function connect() {
     try { conn && conn.close(); } catch (e) {} try { call && call.close(); } catch (e) {}
     const id = 'dadabut-y4c-' + code;
     conn = peer.connect(id, {reliable: true, metadata: {role: 'cam'}});
-    conn.on('open', () => { st('ok', `패드와 연결됐어요 · 코드 ${code}`); conn.send({t: 'facing', facing}); call = peer.call(id, stream, {metadata: {role: 'cam'}}); });
+    conn.on('open', async () => { st('ok', `패드와 연결됐어요 · 코드 ${code}`); try { if (!camLive()) await getCam(); } catch (e) {} conn.send({t: 'facing', facing}); call = peer.call(id, stream, {metadata: {role: 'cam'}}); watchCall(); });
     conn.on('data', onCmd);
     conn.on('close', () => { if (!started) return; st('err', '연결이 끊겼어요. 다시 연결하는 중'); setTimeout(connect, 2000); });
   };
@@ -97,6 +119,7 @@ function unlockAudio() { try { AC = AC || new (window.AudioContext || window.web
 function beep(f, d) { try { const o = AC.createOscillator(), g = AC.createGain(); o.frequency.value = f; g.gain.value = .15; g.gain.exponentialRampToValueAtTime(.001, AC.currentTime + d); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime + d); } catch (e) {} }
 async function onCmd(d) {
   if (!d) return;
+  if (d.t === 'recall') { revive(true); return; }
   if (d.t === 'count') { $('count').textContent = d.n || ''; if (d.n) beep(d.n === 1 ? 1320 : 880, .1); }
   if (d.t === 'flip') {
     facing = facing === 'user' ? 'environment' : 'user';

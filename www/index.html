@@ -181,7 +181,7 @@ h1{font-family:var(--round);font-weight:400;font-size:50px;line-height:1;margin:
   <div class="bar">
     <button class="pill" id="cancel">그만하기</button>
     <div class="dots" id="dots"></div>
-    <div style="display:flex;gap:6px"><button class="pill" id="mirrorBtn" hidden>좌우 반전</button><button class="pill" id="flip">앞뒤 전환</button></div>
+    <div style="display:flex;gap:6px"><button class="pill" id="qrAgain" hidden>QR</button><button class="pill" id="mirrorBtn" hidden>좌우 반전</button><button class="pill" id="flip">앞뒤 전환</button></div>
   </div>
   <div class="stage">
     <div class="qrbox" id="camLink" hidden style="position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);z-index:2;flex-direction:column;text-align:center;padding:22px">
@@ -549,7 +549,7 @@ function flash() { const fl = $('flash'); fl.classList.remove('go'); void fl.off
 const video = $('video');
 async function startCam() {
   stopCam(); $('msg').hidden = true;
-  const ph = S.src === 'phone'; $('mirrorBtn').hidden = !ph;
+  const ph = S.src === 'phone'; $('mirrorBtn').hidden = !ph; $('qrAgain').hidden = !ph;
   if (ph) { ensurePeer(); attachRemote(); return; }
   $('camLink').hidden = true;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return camFail('이 기기에서는 카메라를 쓸 수 없어요.');
@@ -559,15 +559,30 @@ async function startCam() {
   } catch (e) { camFail(e && e.name === 'NotAllowedError' ? '카메라 권한이 꺼져 있어요. 설정 → 애플리케이션 → 연말네컷 → 권한에서 카메라를 허용해 주세요.' : '카메라를 켤 수 없어요. 다른 앱이 카메라를 쓰고 있는지 확인해 주세요.'); }
 }
 function stopCam() { if (S.stream) { S.stream.getTracks().forEach(t => t.stop()); S.stream = null; } video.srcObject = null; }
+const remoteLive = () => !!(remote.conn && remote.conn.open && remote.stream && remote.stream.getVideoTracks().some(t => t.readyState === 'live'));
+// 폰 화면이 안 들어오면(검은 화면) 폰에 화면을 다시 보내 달라고 요청해요
+let lastFrame = 0, lastT = -1, lastRecall = 0;
+setInterval(() => {
+  if (current !== 'shoot' || S.src !== 'phone' || S.running) return;
+  const now = Date.now();
+  if (video.srcObject && video.videoWidth && video.currentTime !== lastT) { lastT = video.currentTime; lastFrame = now; return; }
+  if (remote.conn && remote.conn.open && now - lastFrame > 3500 && now - lastRecall > 6000) {
+    lastRecall = now; try { remote.conn.send({t: 'recall'}); } catch (e) {}
+    setLink('ok', ''); $('camStatus').lastElementChild.textContent = '폰 화면을 다시 받는 중…';
+    if (now - lastFrame > 9000) { $('camLink').hidden = false; drawQRTo($('qrCam'), `${PAGES}cam.html?c=${S.code}`, 2); }
+  }
+}, 1000);
 function attachRemote() {
   if (current !== 'shoot' || S.src !== 'phone') return;
-  const live = remote.stream && remote.conn && remote.conn.open;
+  const live = remoteLive();
   $('camLink').hidden = !!live; $('startBtn').disabled = !live || S.running;
   if (!live) { drawQRTo($('qrCam'), `${PAGES}cam.html?c=${S.code}`, 2); video.srcObject = null; if (!S.running) $('startBtn').textContent = '폰 연결을 기다리는 중'; return; }
-  if (video.srcObject !== remote.stream) { video.srcObject = remote.stream; video.play().catch(() => {}); }
+  if (video.srcObject !== remote.stream) { video.srcObject = remote.stream; lastFrame = Date.now(); video.play().catch(() => {}); }
   video.classList.toggle('mirror', S.mirror);
   if (!S.running && $('startBtn').textContent === '폰 연결을 기다리는 중') $('startBtn').textContent = '촬영 시작';
 }
+$('qrAgain').onclick = () => { const h = !$('camLink').hidden; $('camLink').hidden = h; if (!h) drawQRTo($('qrCam'), `${PAGES}cam.html?c=${S.code}`, 2); };
+$('camLink').onclick = () => { if (remoteLive()) $('camLink').hidden = true; };
 $('mirrorBtn').onclick = () => { S.mirror = !S.mirror; S.mirrorPref = S.mirror; video.classList.toggle('mirror', S.mirror); toast(S.mirror ? '거울처럼 좌우 반전해서 찍어요' : '좌우 반전 없이 찍어요'); };
 let shotWait = null;
 function grabPhone() {
@@ -636,12 +651,13 @@ $('cancel').onclick = () => history.back();
 $('flip').onclick = () => { if (S.src === 'phone') { relay({t: 'flip'}); return; } S.facing = S.facing === 'user' ? 'environment' : 'user'; startCam(); };
 addEventListener('resize', () => { sizeSnow(); if (current === 'shoot') sizeVP(); if (current === 'edit') fitEditor(); });
 document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && peer) ensurePeer();
   if (current !== 'shoot') return;
   if (document.hidden) { abortSeq(); stopCam(); $('startBtn').disabled = false; $('startBtn').textContent = '이어서 찍기'; } else if (S.src === 'phone' || !S.stream) startCam();
 });
 
 /* ===== 사진함 (폰에서 받기) ===== */
-let peer = null, conns = new Set(), linkState = 'wait'; const remote = {conn: null, stream: null};
+let peer = null, conns = new Set(), linkState = 'wait', idRetry = 0; const remote = {conn: null, stream: null};
 function setLink(state, text) {
   linkState = state;
   const cs = $('camStatus'); if (cs) { cs.className = 'status' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : ''); cs.lastElementChild.textContent = state === 'ok' ? `폰 기다리는 중 · 코드 ${S.code}` : text; } const el = $('linkStatus'); el.className = 'status' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : '');
@@ -652,10 +668,15 @@ function ensurePeer() {
   if (peer && !peer.destroyed) { if (peer.disconnected) peer.reconnect(); return; }
   setLink('wait', '연결 준비 중');
   peer = new Peer('dadabut-y4c-' + S.code, {debug: 0});
-  peer.on('open', () => setLink('ok', `받을 준비 완료 · 코드 ${S.code}`));
+  peer.on('open', () => { idRetry = 0; setLink('ok', `받을 준비 완료 · 코드 ${S.code}`); });
   peer.on('disconnected', () => { setLink('wait', '다시 연결하는 중'); setTimeout(() => { if (peer && !peer.destroyed && peer.disconnected) peer.reconnect(); }, 1500); });
   peer.on('error', e => {
-    if (e.type === 'unavailable-id') { S.code = String(1000 + Math.floor(Math.random() * 9000)); remember(); peer.destroy(); peer = null; drawQR(); ensurePeer(); return; }
+    if (e.type === 'unavailable-id') {
+      // 앱을 잠깐 나갔다 오면 서버가 예전 연결을 아직 붙잡고 있을 수 있어요 → 같은 코드로 몇 번 더 시도해요
+      peer.destroy(); peer = null; idRetry++;
+      if (idRetry > 6) { S.code = String(1000 + Math.floor(Math.random() * 9000)); remember(); idRetry = 0; }
+      setLink('wait', '다시 연결하는 중'); setTimeout(() => { ensurePeer(); if (current === 'inbox') drawQR(); attachRemote(); }, idRetry ? 4000 : 0); return;
+    }
     if (e.type === 'network' || e.type === 'server-error' || e.type === 'socket-error') setLink('err', '인터넷 연결을 확인해 주세요');
   });
   peer.on('connection', c => {
