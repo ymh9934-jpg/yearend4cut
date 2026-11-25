@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>연말네컷</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#14213D;--panel:#1C2C50;--line:#2D406B;--ink:#F6F3EA;--mute:#A9B4CC;--gold:#F2C14E;--red:#E4572E}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Samsung Sans","Noto Sans KR",sans-serif;overflow:hidden;user-select:none}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 14px)}
+.screen.on{display:flex}
+h1{font-family:Jua,sans-serif;font-weight:400;font-size:40px;line-height:1.05;margin:4px 0 2px;color:var(--gold)}
+.lead{color:var(--mute);margin:0 0 10px;font-size:15px}
+.label{font-size:14px;color:var(--mute);margin:14px 0 6px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:44px;padding:0 16px;border-radius:22px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:15px;display:flex;align-items:center;gap:8px}
+.chip.on{border-color:var(--gold);background:#2A3A62;color:#fff}
+.sw{width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.4)}
+input[type=text]{width:100%;min-height:48px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:17px;padding:0 14px}
+input[type=text]:focus{outline:2px solid var(--gold);outline-offset:1px}
+.btn{min-height:56px;border-radius:16px;border:0;font:inherit;font-size:18px;font-weight:700;background:var(--gold);color:#1a1405;width:100%}
+.btn.ghost{background:var(--panel);color:var(--ink);border:1.5px solid var(--line)}
+.btn:active,.chip:active{transform:scale(.98)}
+.row{display:flex;gap:10px}
+.scroll{flex:1;overflow-y:auto;margin:0 -18px;padding:0 18px}
+/* home */
+#home .top{display:flex;gap:16px;align-items:stretch}
+#home .preview{flex:none;height:min(46vh,380px);display:flex;align-items:center;justify-content:center}
+#home .preview canvas{height:100%;width:auto;border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+#home .intro{display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:6px}
+#home .foot{padding-top:12px}
+/* shoot */
+#shoot{background:#0B1226;padding-left:0;padding-right:0}
+.bar{display:flex;align-items:center;justify-content:space-between;padding:0 16px 10px}
+.dots{display:flex;gap:8px}
+.dots i{width:12px;height:12px;border-radius:50%;background:#33415f}
+.dots i.done{background:var(--gold)}.dots i.now{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.25)}
+.iconbtn{min-width:44px;min-height:44px;border-radius:22px;border:0;background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:15px;padding:0 14px}
+.stage{flex:1;display:flex;align-items:center;justify-content:center;padding:0 10px;position:relative}
+.vp{position:relative;width:100%;max-height:100%;overflow:hidden;border-radius:10px;background:#000}
+.vp video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.vp video.mirror{transform:scaleX(-1)}
+.count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Jua,sans-serif;font-size:140px;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.6);pointer-events:none}
+.count.pop{animation:pop .9s ease-out}
+@keyframes pop{0%{transform:scale(1.5);opacity:0}25%{transform:scale(1);opacity:1}100%{opacity:.85}}
+.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+.flash.go{animation:fl .45s ease-out}
+@keyframes fl{0%{opacity:.95}100%{opacity:0}}
+.msg{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);text-align:center;background:rgba(11,18,38,.92);border-radius:16px;padding:22px 16px;display:none}
+.msg.on{display:block}
+.thumbs{display:flex;gap:8px;padding:12px 16px 0;justify-content:center}
+.thumbs div{width:56px;aspect-ratio:var(--ar,4/3);border-radius:6px;background:#1C2640 center/cover;border:1.5px solid #2b3858}
+.thumbs div.now{border-color:#fff}
+.ctrl{padding:14px 16px 0;display:flex;gap:10px}
+.ctrl .btn{flex:1}
+.ctrl .iconbtn{min-width:56px;min-height:56px;border-radius:16px;font-size:14px}
+/* result */
+#result .pic{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:4px 0 8px}
+#result .pic img{max-height:100%;max-width:100%;border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.retake{display:flex;gap:8px;justify-content:center}
+.retake button{flex:1;max-width:84px;min-height:44px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel) center/cover;color:#fff;font:inherit;font-size:12px;font-weight:700;text-shadow:0 1px 4px #000;aspect-ratio:4/3}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translateX(-50%);background:#fff;color:#14213D;padding:12px 18px;border-radius:24px;font-weight:700;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:9}
+.toast.on{opacity:1}
+@media (max-height:640px){#home .preview{height:38vh}h1{font-size:32px}}
+@media (prefers-reduced-motion:reduce){.count.pop,.flash.go{animation:none}}
+</style>
+</head>
+<body>
+
+<section class="screen" id="home">
+  <div class="scroll">
+    <div class="top">
+      <div class="preview"><canvas id="pv"></canvas></div>
+      <div class="intro">
+        <h1>연말<br>네컷</h1>
+        <p class="lead">네 번 웃으면<br>한 장이 완성돼요</p>
+      </div>
+    </div>
+    <div class="label">모양</div>
+    <div class="chips" id="layouts"></div>
+    <div class="label">프레임</div>
+    <div class="chips" id="themes"></div>
+    <div class="label">사진 아래 글씨</div>
+    <input type="text" id="title" maxlength="18" placeholder="예) 2026 우리의 연말">
+    <div class="label">타이머</div>
+    <div class="chips" id="timers"></div>
+  </div>
+  <div class="foot"><button class="btn" id="goShoot">촬영하러 가기</button></div>
+</section>
+
+<section class="screen" id="shoot">
+  <div class="bar">
+    <button class="iconbtn" id="cancel">← 그만</button>
+    <div class="dots" id="dots"></div>
+    <button class="iconbtn" id="flip">카메라 전환</button>
+  </div>
+  <div class="stage">
+    <div class="vp" id="vp">
+      <video id="video" playsinline muted autoplay></video>
+      <div class="count" id="count"></div>
+    </div>
+    <div class="msg" id="msg">
+      <p id="msgText" style="margin:0 0 14px">카메라를 켤 수 없어요.</p>
+      <button class="btn ghost" id="pickBtn">갤러리에서 사진 고르기</button>
+      <input type="file" id="pick" accept="image/*" hidden>
+    </div>
+  </div>
+  <div class="thumbs" id="thumbs"></div>
+  <div class="ctrl"><button class="btn" id="startBtn">촬영 시작</button></div>
+</section>
+
+<section class="screen" id="result">
+  <div class="pic"><img id="out" alt="완성된 네컷 사진"></div>
+  <div class="label" style="margin-top:0">마음에 안 드는 컷은 눌러서 다시 찍기</div>
+  <div class="retake" id="retake"></div>
+  <div class="chips" id="themes2" style="margin-top:10px"></div>
+  <div class="chips" id="filters" style="margin-top:8px"></div>
+  <div class="row" style="margin-top:12px">
+    <button class="btn" id="save">갤러리에 저장</button>
+    <button class="btn ghost" id="share" style="max-width:34%">보내기</button>
+  </div>
+  <button class="btn ghost" id="again" style="margin-top:10px;min-height:48px;font-size:16px">처음부터 새로 찍기</button>
+</section>
+
+<div class="flash" id="flash"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+{
+const $ = id => document.getElementById(id);
+
+const THEMES = [
+  {id:'snow',  name:'눈 오는 밤', bg:'#14213D', bg2:'#22345E', ink:'#FFFFFF', sub:'#F2C14E', deco:'snow'},
+  {id:'xmas',  name:'크리스마스', bg:'#0E4D35', bg2:'#146343', ink:'#FFFFFF', sub:'#F4D35E', deco:'xmas'},
+  {id:'champ', name:'샴페인',     bg:'#F5EAD7', bg2:'#EAD6B4', ink:'#3A2A12', sub:'#A87A28', deco:'confetti'},
+  {id:'pink',  name:'핑크 파티',  bg:'#F6C3D5', bg2:'#EEA7C0', ink:'#5A1F37', sub:'#FFFFFF', deco:'sparkle'},
+  {id:'white', name:'화이트',     bg:'#FFFFFF', bg2:'#ECECEC', ink:'#111111', sub:'#8A8A8A', deco:'none'},
+  {id:'black', name:'블랙',       bg:'#111111', bg2:'#262626', ink:'#FFFFFF', sub:'#9A9A9A', deco:'none'}
+];
+const FILTERS = [
+  {id:'none', name:'기본',     f:'none'},
+  {id:'bw',   name:'흑백',     f:'grayscale(1) contrast(1.15) brightness(1.05)'},
+  {id:'warm', name:'따뜻하게', f:'sepia(.22) saturate(1.2) brightness(1.04)'},
+  {id:'soft', name:'뽀샤시',   f:'brightness(1.12) contrast(.9) saturate(1.08)'}
+];
+const LAYOUTS = [{id:'strip', name:'세로 4컷'}, {id:'grid', name:'2×2 네모'}];
+const TIMERS = [3, 5, 10];
+
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem('y4c') || '{}'); } catch (e) {}
+const S = {
+  layout: saved.layout || 'strip', theme: saved.theme || 'snow', filter: saved.filter || 'none',
+  timer: saved.timer || 5, title: saved.title ?? '2026 우리의 연말',
+  facing: 'user', shots: [null, null, null, null], queue: [], running: false, stream: null
+};
+const remember = () => { try { localStorage.setItem('y4c', JSON.stringify({layout:S.layout, theme:S.theme, filter:S.filter, timer:S.timer, title:S.title})); } catch (e) {} };
+
+/* ---------- 배치 계산 ---------- */
+function geo(layout) {
+  if (layout === 'grid') {
+    const W = 1200, H = 1800, pad = 48, gap = 24, foot = 250;
+    const w = (W - pad * 2 - gap) / 2, h = (H - pad - foot - gap) / 2;
+    const cuts = [0, 1, 2, 3].map(i => ({x: pad + (i % 2) * (w + gap), y: pad + Math.floor(i / 2) * (h + gap), w, h}));
+    return {W, H, cuts, foot, tSize: 74, dSize: 36};
+  }
+  const W = 1200, pad = 60, gap = 30, w = W - pad * 2, h = Math.round(w * 3 / 4), foot = 300;
+  const H = pad + h * 4 + gap * 3 + foot;
+  const cuts = [0, 1, 2, 3].map(i => ({x: pad, y: pad + i * (h + gap), w, h}));
+  return {W, H, cuts, foot, tSize: 86, dSize: 40};
+}
+const cutAR = () => { const c = geo(S.layout).cuts[0]; return c.w / c.h; };
+
+/* ---------- 장식 ---------- */
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function star(ctx, x, y, r, n, inner) {
+  ctx.beginPath();
+  for (let i = 0; i < n * 2; i++) {
+    const a = Math.PI / n * i - Math.PI / 2, rr = i % 2 ? r * inner : r;
+    ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+  }
+  ctx.closePath(); ctx.fill();
+}
+function deco(ctx, t, W, H) {
+  const R = rng(t.id.length * 977 + W);
+  if (t.deco === 'snow') {
+    for (let i = 0; i < 260; i++) { ctx.globalAlpha = .25 + R() * .7; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(R() * W, R() * H, 2 + R() * 6, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = .9; ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    for (let i = 0; i < 7; i++) {
+      const x = R() * W, y = H - R() * 260, r = 18 + R() * 22;
+      for (let k = 0; k < 6; k++) { const a = Math.PI / 3 * k; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); ctx.stroke(); }
+    }
+  } else if (t.deco === 'xmas') {
+    for (let i = 0; i < 120; i++) {
+      ctx.globalAlpha = .55 + R() * .45;
+      if (R() < .5) { ctx.fillStyle = '#F4D35E'; star(ctx, R() * W, R() * H, 8 + R() * 14, 5, .45); }
+      else { ctx.fillStyle = R() < .6 ? '#E4572E' : '#fff'; ctx.beginPath(); ctx.arc(R() * W, R() * H, 4 + R() * 6, 0, 7); ctx.fill(); }
+    }
+  } else if (t.deco === 'confetti') {
+    const cs = ['#C9962F', '#E3BE6A', '#8C6420', '#ffffff'];
+    for (let i = 0; i < 220; i++) {
+      ctx.save(); ctx.globalAlpha = .6 + R() * .4; ctx.fillStyle = cs[Math.floor(R() * cs.length)];
+      ctx.translate(R() * W, R() * H); ctx.rotate(R() * 6.3); ctx.fillRect(-9, -4, 18, 8); ctx.restore();
+    }
+  } else if (t.deco === 'sparkle') {
+    for (let i = 0; i < 90; i++) { ctx.globalAlpha = .55 + R() * .45; ctx.fillStyle = '#fff'; star(ctx, R() * W, R() * H, 8 + R() * 20, 4, .3); }
+  }
+  ctx.globalAlpha = 1;
+}
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
+function placeholder(ctx, c, t, i) {
+  ctx.fillStyle = t.bg2; ctx.fillRect(c.x, c.y, c.w, c.h);
+  ctx.fillStyle = t.ink; ctx.globalAlpha = .16;
+  const cx = c.x + c.w / 2, s = Math.min(c.w, c.h);
+  ctx.beginPath(); ctx.arc(cx, c.y + c.h * .42, s * .17, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx, c.y + c.h * 1.02, s * .36, s * .38, 0, Math.PI, 0); ctx.fill();
+  ctx.globalAlpha = .5; ctx.font = `${Math.round(s * .12)}px Jua, sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(String(i + 1), c.x + s * .06, c.y + s * .05); ctx.globalAlpha = 1;
+}
+function today() { const d = new Date(); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`; }
+
+/* ---------- 합성 ---------- */
+function compose(cv, shots) {
+  const g = geo(S.layout), t = THEMES.find(x => x.id === S.theme), f = FILTERS.find(x => x.id === S.filter);
+  cv.width = g.W; cv.height = g.H;
+  const ctx = cv.getContext('2d');
+  const grd = ctx.createLinearGradient(0, 0, 0, g.H); grd.addColorStop(0, t.bg); grd.addColorStop(1, t.bg2);
+  ctx.fillStyle = grd; ctx.fillRect(0, 0, g.W, g.H);
+  deco(ctx, t, g.W, g.H);
+  g.cuts.forEach((c, i) => {
+    ctx.save(); rr(ctx, c.x, c.y, c.w, c.h, 14); ctx.clip();
+    if (shots[i]) { ctx.filter = f.f; ctx.drawImage(shots[i], c.x, c.y, c.w, c.h); ctx.filter = 'none'; }
+    else placeholder(ctx, c, t, i);
+    ctx.restore();
+  });
+  const top = g.H - g.foot;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = t.ink; ctx.font = `${g.tSize}px Jua, sans-serif`;
+  ctx.fillText(S.title || ' ', g.W / 2, top + g.foot * .43, g.W - 120);
+  ctx.fillStyle = t.sub; ctx.font = `600 ${g.dSize}px system-ui, sans-serif`;
+  ctx.fillText(today(), g.W / 2, top + g.foot * .73);
+  return cv;
+}
+
+/* ---------- 홈 ---------- */
+function chips(el, items, cur, onPick, swatch) {
+  el.innerHTML = items.map(it => `<button class="chip${it.id == cur ? ' on' : ''}" data-id="${it.id}">${swatch ? `<span class="sw" style="background:${it.bg}"></span>` : ''}${it.name}</button>`).join('');
+  el.onclick = e => { const b = e.target.closest('.chip'); if (!b) return; onPick(b.dataset.id); };
+}
+function drawHome() {
+  chips($('layouts'), LAYOUTS, S.layout, v => { S.layout = v; S.shots = [null, null, null, null]; remember(); drawHome(); });
+  chips($('themes'), THEMES, S.theme, v => { S.theme = v; remember(); drawHome(); }, true);
+  chips($('timers'), TIMERS.map(n => ({id: n, name: n + '초'})), S.timer, v => { S.timer = +v; remember(); drawHome(); });
+  compose($('pv'), S.shots);
+}
+$('title').value = S.title;
+$('title').oninput = e => { S.title = e.target.value; remember(); compose($('pv'), S.shots); };
+$('goShoot').onclick = () => { S.shots = [null, null, null, null]; S.queue = [0, 1, 2, 3]; S.fromResult = false; location.hash = 'shoot'; };
+
+/* ---------- 소리 ---------- */
+let AC = null;
+function beep(freq, dur, vol) {
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.frequency.value = freq; o.type = 'sine'; g.gain.value = vol || .15;
+    g.gain.exponentialRampToValueAtTime(.001, AC.currentTime + dur);
+    o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime + dur);
+  } catch (e) {}
+}
+function shutter() {
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const n = AC.sampleRate * .12, b = AC.createBuffer(1, n, AC.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+    const s = AC.createBufferSource(), g = AC.createGain(); g.gain.value = .5;
+    s.buffer = b; s.connect(g).connect(AC.destination); s.start();
+  } catch (e) {}
+}
+
+/* ---------- 카메라 ---------- */
+const video = $('video');
+async function startCam() {
+  stopCam();
+  $('msg').classList.remove('on');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { camFail('이 기기에서는 카메라를 쓸 수 없어요.'); return false; }
+  try {
+    S.stream = await navigator.mediaDevices.getUserMedia({audio: false, video: {facingMode: S.facing, width: {ideal: 1920}, height: {ideal: 1440}}});
+    video.srcObject = S.stream;
+    video.classList.toggle('mirror', S.facing === 'user');
+    await video.play().catch(() => {});
+    return true;
+  } catch (e) {
+    camFail(e && e.name === 'NotAllowedError'
+      ? '카메라 권한이 꺼져 있어요. 설정 → 애플리케이션 → 연말네컷 → 권한에서 카메라를 허용해 주세요.'
+      : '카메라를 켤 수 없어요. 다른 앱이 카메라를 쓰고 있는지 확인해 주세요.');
+    return false;
+  }
+}
+function stopCam() { if (S.stream) { S.stream.getTracks().forEach(t => t.stop()); S.stream = null; } video.srcObject = null; }
+function camFail(text) { $('msgText').textContent = text; $('msg').classList.add('on'); }
+
+function sizeVP() {
+  const stage = document.querySelector('.stage'), ar = cutAR();
+  const maxW = stage.clientWidth - 20, maxH = stage.clientHeight;
+  let w = maxW, h = w / ar; if (h > maxH) { h = maxH; w = h * ar; }
+  $('vp').style.width = w + 'px'; $('vp').style.height = h + 'px';
+}
+function grab() {
+  const c = geo(S.layout).cuts[0], vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw) return null;
+  const ar = c.w / c.h; let sw = vw, sh = vw / ar; if (sh > vh) { sh = vh; sw = vh * ar; }
+  const cv = document.createElement('canvas'); cv.width = Math.round(c.w); cv.height = Math.round(c.h);
+  const ctx = cv.getContext('2d');
+  if (S.facing === 'user') { ctx.translate(cv.width, 0); ctx.scale(-1, 1); }
+  ctx.drawImage(video, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
+  return cv;
+}
+function fromImage(img) {
+  const c = geo(S.layout).cuts[0], ar = c.w / c.h, iw = img.naturalWidth, ih = img.naturalHeight;
+  let sw = iw, sh = iw / ar; if (sh > ih) { sh = ih; sw = ih * ar; }
+  const cv = document.createElement('canvas'); cv.width = Math.round(c.w); cv.height = Math.round(c.h);
+  cv.getContext('2d').drawImage(img, (iw - sw) / 2, (ih - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
+  return cv;
+}
+
+function drawShootUI() {
+  const cur = S.queue[0];
+  $('dots').innerHTML = S.shots.map((s, i) => `<i class="${i === cur ? 'now' : s ? 'done' : ''}"></i>`).join('');
+  const ar = cutAR();
+  $('thumbs').style.setProperty('--ar', ar);
+  $('thumbs').innerHTML = S.shots.map((s, i) => `<div class="${i === cur ? 'now' : ''}" data-i="${i}"></div>`).join('');
+  S.shots.forEach((s, i) => { if (s) $('thumbs').children[i].style.backgroundImage = `url(${s.toDataURL('image/jpeg', .6)})`; });
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+let runId = 0;
+async function runSequence() {
+  if (S.running) return;
+  S.running = true; const my = ++runId;
+  $('startBtn').disabled = true; $('startBtn').textContent = '찍는 중…';
+  const cnt = $('count');
+  while (S.queue.length && my === runId) {
+    drawShootUI();
+    for (let n = S.timer; n > 0; n--) {
+      if (my !== runId) return;
+      cnt.textContent = n; cnt.classList.remove('pop'); void cnt.offsetWidth; cnt.classList.add('pop');
+      beep(n === 1 ? 1320 : 880, .12);
+      await wait(1000);
+    }
+    if (my !== runId) return;
+    cnt.textContent = '';
+    const shot = grab();
+    shutter();
+    const fl = $('flash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
+    if (shot) { S.shots[S.queue[0]] = shot; S.queue.shift(); }
+    drawShootUI();
+    await wait(S.queue.length ? 900 : 500);
+  }
+  S.running = false;
+  if (my === runId && !S.queue.length) { stopCam(); finishShoot(); }
+}
+function finishShoot() { if (S.fromResult) history.back(); else location.replace('#result'); }
+function abortSequence() { runId++; S.running = false; $('count').textContent = ''; }
+
+$('startBtn').onclick = () => { beep(660, .05, .01); runSequence(); };
+$('cancel').onclick = () => history.back();
+$('flip').onclick = async () => { S.facing = S.facing === 'user' ? 'environment' : 'user'; await startCam(); };
+$('pickBtn').onclick = () => $('pick').click();
+$('pick').onchange = e => {
+  const file = e.target.files[0]; if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    S.shots[S.queue.shift()] = fromImage(img); URL.revokeObjectURL(img.src); e.target.value = '';
+    if (S.queue.length) { drawShootUI(); $('msgText').textContent = `${S.queue[0] + 1}번째 컷 사진도 골라 주세요.`; }
+    else finishShoot();
+  };
+  img.src = URL.createObjectURL(file);
+};
+
+/* ---------- 결과 ---------- */
+const outCv = document.createElement('canvas');
+function drawResult() {
+  compose(outCv, S.shots);
+  $('out').src = outCv.toDataURL('image/jpeg', .85);
+  const rt = $('retake');
+  rt.innerHTML = S.shots.map((s, i) => `<button data-i="${i}" style="aspect-ratio:${cutAR()}">${i + 1}번 다시</button>`).join('');
+  S.shots.forEach((s, i) => { if (s) rt.children[i].style.backgroundImage = `url(${s.toDataURL('image/jpeg', .5)})`; });
+  rt.onclick = e => { const b = e.target.closest('button'); if (!b) return; S.queue = [+b.dataset.i]; S.fromResult = true; location.hash = 'shoot'; };
+  chips($('themes2'), THEMES, S.theme, v => { S.theme = v; remember(); drawResult(); }, true);
+  chips($('filters'), FILTERS, S.filter, v => { S.filter = v; remember(); drawResult(); });
+}
+function fileName() { const d = new Date(), p = n => String(n).padStart(2, '0'); return `연말네컷_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`; }
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 2200); }
+function finalData() { compose(outCv, S.shots); return outCv.toDataURL('image/jpeg', .93); }
+$('save').onclick = () => {
+  const data = finalData(), name = fileName();
+  if (window.PhotoSaver) {
+    const r = window.PhotoSaver.save(data, name);
+    toast(r === 'ok' ? '갤러리 › 연말네컷 앨범에 저장했어요' : '저장하지 못했어요: ' + r.replace('error:', ''));
+  } else {
+    const a = document.createElement('a'); a.href = data; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    toast('사진을 내려받았어요');
+  }
+};
+$('share').onclick = () => {
+  const data = finalData(), name = fileName();
+  if (window.PhotoSaver) { const r = window.PhotoSaver.share(data, name); if (r !== 'ok') toast('보내지 못했어요: ' + r.replace('error:', '')); }
+  else toast('앱에서만 보낼 수 있어요');
+};
+$('again').onclick = () => { S.shots = [null, null, null, null]; location.hash = 'home'; };
+
+/* ---------- 화면 전환 (뒤로 가기 버튼 지원) ---------- */
+function show(name) {
+  if (name === 'shoot' && !S.queue.length) name = 'home';
+  if (name === 'result' && S.shots.some(s => !s)) name = 'home';
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === name));
+  if (name !== 'shoot') { abortSequence(); stopCam(); }
+  if (name === 'home') drawHome();
+  if (name === 'shoot') {
+    $('startBtn').disabled = false;
+    $('startBtn').textContent = S.queue.length === 1 ? `${S.queue[0] + 1}번 컷 다시 찍기` : '촬영 시작';
+    drawShootUI(); requestAnimationFrame(sizeVP); startCam();
+  }
+  if (name === 'result') drawResult();
+}
+window.addEventListener('hashchange', () => show(location.hash.slice(1) || 'home'));
+window.addEventListener('resize', () => { if ($('shoot').classList.contains('on')) sizeVP(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && $('shoot').classList.contains('on')) { abortSequence(); stopCam(); $('startBtn').disabled = false; $('startBtn').textContent = '이어서 찍기'; }
+  else if (!document.hidden && $('shoot').classList.contains('on') && !S.stream) startCam();
+});
+
+if (location.hash && location.hash !== '#home') history.replaceState(null, '', '#home');
+show('home');
+(document.fonts && document.fonts.load ? document.fonts.load('40px Jua') : Promise.resolve()).then(() => { if ($('home').classList.contains('on')) drawHome(); }).catch(() => {});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+name: 앱 만들기 (APK)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+    steps:
+      - name: 서명 비밀번호 확인
+        id: chk
+        run: |
+          if [ -z "$SIGNING_PASSWORD" ]; then
+            echo "::notice::SIGNING_PASSWORD 비밀값이 아직 없어서 앱을 만들지 않았어요. 저장소 Settings → Secrets and variables → Actions 에서 추가해 주세요."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.chk.outputs.ok == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.chk.outputs.ok == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        if: steps.chk.outputs.ok == 'true'
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: 패키지 설치
+        if: steps.chk.outputs.ok == 'true'
+        run: npm ci
+
+      - name: 웹 화면을 안드로이드 프로젝트로 복사
+        if: steps.chk.outputs.ok == 'true'
+        run: npx cap sync android
+
+      - name: 서명 열쇠 풀기
+        if: steps.chk.outputs.ok == 'true'
+        run: openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in android/app/release.keystore.enc -out android/app/release.keystore -pass env:SIGNING_PASSWORD
+
+      - name: APK 빌드
+        if: steps.chk.outputs.ok == 'true'
+        working-directory: android
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: 릴리스에 올리기
+        if: steps.chk.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk yearend4cut.apk
+          gh release create "v1.0.${{ github.run_number }}" yearend4cut.apk \
+            --target "${{ github.sha }}" \
+            --title "연말네컷 1.0.${{ github.run_number }}" \
+            --notes "갤럭시 폰에서 yearend4cut.apk 를 눌러 내려받고 설치하세요." \
+            --latest

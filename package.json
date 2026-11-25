@@ -1,0 +1,11 @@
+{
+  "name": "yearend4cut-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "연말네컷 - 폰으로 찍는 네컷 사진 촬영기",
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2"
+  }
+}

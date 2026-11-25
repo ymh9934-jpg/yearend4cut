@@ -1,0 +1,6 @@
+node_modules/
+.DS_Store
+*.apk
+android/app/release.keystore
+*.keystore
+!*.keystore.enc
