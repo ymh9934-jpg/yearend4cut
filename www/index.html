@@ -134,6 +134,18 @@ h1{font-family:var(--round);font-weight:400;font-size:50px;line-height:1;margin:
 .pic img{max-height:100%;max-width:100%;border-radius:6px;box-shadow:0 18px 36px rgba(0,0,0,.5)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
+/* 앨범 */
+.agrid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-content:start;padding:2px}
+@media (max-width:600px){.agrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.agrid button{border:0;padding:0;background:#1A2340 center/contain no-repeat;border-radius:8px;aspect-ratio:1/2;box-shadow:0 6px 14px rgba(0,0,0,.35)}
+#vPic{position:relative}
+.nav{position:absolute;top:50%;transform:translateY(-50%);width:52px;height:52px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff;font-size:34px;line-height:1;z-index:2}
+#vPrev{left:0}#vNext{right:0}
+.slide{position:fixed;inset:0;background:#05070F;z-index:50;display:flex;align-items:center;justify-content:center}
+.slide img{position:absolute;max-width:94%;max-height:90%;opacity:0;transition:opacity 1.2s ease}
+.slide img.on{opacity:1}
+.slide p{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 10px);color:rgba(255,255,255,.35);font-size:13px;margin:0}
+
 /* 창 */
 .modal{position:fixed;inset:0;background:rgba(5,8,20,.72);display:flex;align-items:center;justify-content:center;padding:20px;z-index:30}
 .sheet{width:100%;max-width:420px;background:#FFF9EE;color:#2A2140;border-radius:26px;padding:22px 20px;text-align:center}
@@ -174,6 +186,7 @@ h1{font-family:var(--round);font-weight:400;font-size:50px;line-height:1;margin:
       <span><b>폰 사진 보내기</b><br><small>찍어 둔 사진을 받아서 꾸미기</small></span>
     </button>
   </div>
+  <button class="btn ghost" id="goAlbum" style="margin-top:10px;min-height:52px;font-size:18px">완성 앨범 보기 <span class="badge" id="albumBadge" hidden>0</span></button>
   <button class="link" id="openSettings">사진 QR 받기 설정</button>
 </section>
 
@@ -243,6 +256,23 @@ h1{font-family:var(--round);font-weight:400;font-size:50px;line-height:1;margin:
     <button class="btn ghost" id="again">처음으로</button>
   </div>
 </section>
+
+<section class="screen" id="album">
+  <div class="top"><button class="pill" data-back>←</button><h2>완성 앨범</h2><button class="pill" id="slideBtn">슬라이드쇼</button></div>
+  <div class="agrid" id="agrid"></div>
+</section>
+
+<section class="screen" id="view">
+  <div class="top"><button class="pill" data-back>←</button><h2 id="viewNo"></h2><button class="pill" id="vDel">삭제</button></div>
+  <div class="pic" id="vPic"><button class="nav" id="vPrev" aria-label="이전">‹</button><img id="vImg" alt="완성된 사진"><button class="nav" id="vNext" aria-label="다음">›</button></div>
+  <div class="grid2">
+    <button class="btn" id="vSave">갤러리에 저장</button>
+    <button class="btn pink" id="vQR">QR로 받기</button>
+    <button class="btn ghost" id="vShare" style="grid-column:1/-1">카톡 등으로 보내기</button>
+  </div>
+</section>
+
+<div class="slide" id="slide" hidden><img id="slA" alt=""><img id="slB" alt=""><p>화면을 누르면 끝나요</p></div>
 
 <div class="modal" id="modal" hidden><div class="sheet" id="sheet"></div></div>
 <div class="flash" id="flash"></div>
@@ -711,16 +741,19 @@ function go(name, replace) { if (replace) location.replace('#' + name); else loc
 function show(name) {
   if (name === 'edit' && S.cuts.some(c => !c)) name = 'home';
   if (name === 'result' && S.cuts.some(c => !c)) name = 'home';
+  if (name === 'view' && !album[S.viewIdx]) name = 'album';
   if (name === 'shoot' && !S.queue.length) name = 'home';
   current = name;
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === name));
   if (name !== 'shoot') { abortSeq(); stopCam(); }
-  setSnow(name === 'home' || name === 'inbox' || name === 'result');
+  setSnow(name === 'home' || name === 'inbox' || name === 'result' || name === 'album');
   if (name === 'home') drawHome();
   if (name === 'inbox') { ensurePeer(); drawInbox(); }
   if (name === 'edit') { S.sel = null; requestAnimationFrame(() => { fitEditor(); setTool(tool); }); }
   if (name === 'shoot') enterShoot();
-  if (name === 'result') drawResult();
+  if (name === 'result') { drawResult(); saveToAlbum(); }
+  if (name === 'album') { loadAlbum().then(drawAlbum); }
+  if (name === 'view') drawView();
 }
 addEventListener('hashchange', () => show(location.hash.slice(1) || 'home'));
 document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => history.back());
@@ -728,7 +761,7 @@ document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => history.
 /* ===== 홈 ===== */
 function drawHome() {
   render($('pv'), .3, {empty: true});
-  const n = S.tray.length; $('trayBadge').hidden = !n; $('trayBadge').textContent = n;
+  const n = S.tray.length; $('trayBadge').hidden = !n; $('trayBadge').textContent = n; updateAlbumBadge();
 }
 $('goShoot').onclick = () => { S.src = 'tab'; S.shots = [null, null, null, null]; S.queue = [0, 1, 2, 3]; go('shoot'); };
 $('goPhoneCam').onclick = () => { S.src = 'phone'; S.shots = [null, null, null, null]; S.queue = [0, 1, 2, 3]; go('shoot'); };
@@ -958,6 +991,7 @@ function startEditing(imgs) {
   S.cuts = imgs.map(src => ({src, zoom: 1, ox: 0, oy: 0}));
   S.items = []; S.strokes = []; S.sel = null; S.filter = 'none'; S.uploaded = null; hist = [];
   S.fortune = FORTUNES[Math.floor(Math.random() * FORTUNES.length)]; S.receiptNo = 1 + Math.floor(Math.random() * 9999);
+  S.albumId = null; S.albumKey = null; S.albumCreated = null;
 }
 const snap = () => JSON.stringify({items: S.items.map(({w, h, ...r}) => r), strokes: S.strokes, cuts: S.cuts.map(c => [c.zoom, c.ox, c.oy]), theme: S.theme, layout: S.layout, phrase: S.phrase, title: S.title, showDate: S.showDate, filter: S.filter});
 function pushHist() { const s = snap(); if (hist[hist.length - 1] !== s) { hist.push(s); if (hist.length > 50) hist.shift(); } S.uploaded = null; }
@@ -1092,16 +1126,83 @@ function finalData() { render(outCv, EXPORT_SCALE); return outCv.toDataURL('imag
 function drawResult() { render(outCv, .5); $('out').src = outCv.toDataURL('image/jpeg', .85); }
 function fileName() { const d = new Date(), p = n => String(n).padStart(2, '0'); return `연말네컷_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`; }
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 2400); }
-$('save').onclick = () => {
-  const data = finalData(), name = fileName();
+function saveData(data, name) {
   if (window.PhotoSaver) { const r = window.PhotoSaver.save(data, name); toast(r === 'ok' ? '갤러리 › 연말네컷 앨범에 저장했어요' : '저장하지 못했어요: ' + r.replace('error:', '')); }
   else { const a = document.createElement('a'); a.href = data; a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast('사진을 내려받았어요'); }
-};
-$('share').onclick = () => {
-  const data = finalData(), name = fileName();
+}
+function shareData(data, name) {
   if (window.PhotoSaver) { const r = window.PhotoSaver.share(data, name); if (r !== 'ok') toast('보내지 못했어요: ' + r.replace('error:', '')); }
   else toast('앱에서만 보낼 수 있어요');
+}
+$('save').onclick = () => saveData(finalData(), fileName());
+$('share').onclick = () => shareData(finalData(), fileName());
+
+/* ===== 완성 앨범 (탭 안에 저장) ===== */
+const DB = {db: null};
+function dbOpen() {
+  if (DB.db) return Promise.resolve(DB.db);
+  return new Promise((res, rej) => { try { const r = indexedDB.open('yearend4cut', 1); r.onupgradeneeded = () => r.result.createObjectStore('photos', {keyPath: 'id'}); r.onsuccess = () => res(DB.db = r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } });
+}
+async function dbDo(mode, fn) { const db = await dbOpen(); return new Promise((res, rej) => { const tx = db.transaction('photos', mode), st = tx.objectStore('photos'); const r = fn(st); tx.oncomplete = () => res(r && r.result); tx.onerror = () => rej(tx.error); }); }
+let album = [];
+async function loadAlbum() { try { album = (await dbDo('readonly', st => st.getAll())) || []; album.sort((a, b) => b.created - a.created); } catch (e) { album = []; } updateAlbumBadge(); return album; }
+function updateAlbumBadge() { const b = $('albumBadge'); if (!b) return; b.hidden = !album.length; b.textContent = album.length; }
+async function saveToAlbum() {
+  const key = snap(); if (S.albumKey === key) return;
+  const data = finalData(), blob = await (await fetch(data)).blob();
+  const tcv = document.createElement('canvas'), m = 420 / outCv.height; tcv.width = Math.round(outCv.width * m); tcv.height = 420; tcv.getContext('2d').drawImage(outCv, 0, 0, tcv.width, tcv.height);
+  const rec = {id: S.albumId || ('p' + Date.now()), created: S.albumCreated || Date.now(), blob, thumb: tcv.toDataURL('image/jpeg', .75), name: fileName(), driveId: null};
+  S.albumId = rec.id; S.albumCreated = rec.created; S.albumKey = key;
+  try { await dbDo('readwrite', st => st.put(rec)); await loadAlbum(); } catch (e) { toast('앨범에 저장하지 못했어요'); }
+}
+const blobToData = b => new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(b); });
+function drawAlbum() {
+  const g = $('agrid');
+  if (!album.length) { g.innerHTML = '<div class="empty" style="grid-column:1/-1">아직 완성한 사진이 없어요.<br>사진을 찍고 꾸민 뒤 ‘완성’을 누르면 여기에 모여요.</div>'; return; }
+  g.innerHTML = album.map((p, i) => `<button data-i="${i}" aria-label="${i + 1}번째 사진"></button>`).join('');
+  album.forEach((p, i) => { g.children[i].style.backgroundImage = `url(${p.thumb})`; });
+}
+$('agrid').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.viewIdx = +b.dataset.i; go('view'); };
+$('goAlbum').onclick = () => go('album');
+let viewURL = null;
+function drawView() {
+  const p = album[S.viewIdx]; if (!p) return go('album', true);
+  if (viewURL) URL.revokeObjectURL(viewURL); viewURL = URL.createObjectURL(p.blob); $('vImg').src = viewURL;
+  $('viewNo').textContent = `${S.viewIdx + 1} / ${album.length}`;
+  $('vPrev').hidden = S.viewIdx <= 0; $('vNext').hidden = S.viewIdx >= album.length - 1;
+}
+$('vPrev').onclick = () => { if (S.viewIdx > 0) { S.viewIdx--; drawView(); } };
+$('vNext').onclick = () => { if (S.viewIdx < album.length - 1) { S.viewIdx++; drawView(); } };
+{ let sx = null; $('vPic').addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, {passive: true}); $('vPic').addEventListener('touchend', e => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; sx = null; if (dx > 60) $('vPrev').onclick(); if (dx < -60) $('vNext').onclick(); }); }
+$('vSave').onclick = async () => { const p = album[S.viewIdx]; saveData(await blobToData(p.blob), p.name); };
+$('vShare').onclick = async () => { const p = album[S.viewIdx]; shareData(await blobToData(p.blob), p.name); };
+$('vQR').onclick = async () => {
+  const p = album[S.viewIdx];
+  const id = await uploadForQR(async () => (await blobToData(p.blob)).split(',')[1], p.name, p.driveId);
+  if (id && id !== p.driveId) { p.driveId = id; try { await dbDo('readwrite', st => st.put(p)); } catch (e) {} }
 };
+$('vDel').onclick = () => {
+  modal(`<h3>이 사진을 지울까요?</h3><p>탭의 완성 앨범에서만 지워져요. 이미 저장하거나 보낸 사진은 그대로 있어요.</p><div class="grid2"><button class="btn ghost" data-close>취소</button><button class="btn pink" id="delOk">지우기</button></div>`);
+  $('delOk').onclick = async () => {
+    const p = album[S.viewIdx]; try { await dbDo('readwrite', st => st.delete(p.id)); } catch (e) {}
+    if (S.albumId === p.id) { S.albumId = null; S.albumKey = null; }
+    closeModal(); await loadAlbum(); toast('지웠어요');
+    if (!album.length) history.back(); else { S.viewIdx = Math.min(S.viewIdx, album.length - 1); drawView(); }
+  };
+};
+/* 슬라이드쇼: 행사 중 탭을 세워 두면 완성 사진이 돌아가며 나와요 */
+let slideT = null, slideI = 0, slideUrls = [];
+function slideShow() {
+  if (!album.length) { toast('아직 완성한 사진이 없어요'); return; }
+  $('slide').hidden = false; slideI = 0; slideUrls.forEach(u => URL.revokeObjectURL(u)); slideUrls = album.map(p => URL.createObjectURL(p.blob));
+  const imgs = [$('slA'), $('slB')]; let cur = 0;
+  const step = () => { const im = imgs[cur]; im.src = slideUrls[slideI % slideUrls.length]; im.onload = () => { im.classList.add('on'); imgs[1 - cur].classList.remove('on'); cur = 1 - cur; }; slideI++; };
+  step(); clearInterval(slideT); slideT = setInterval(step, 4500);
+  try { document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {}); } catch (e) {}
+}
+$('slideBtn').onclick = slideShow;
+$('slide').onclick = () => { clearInterval(slideT); $('slide').hidden = true; $('slA').classList.remove('on'); $('slB').classList.remove('on'); try { document.fullscreenElement && document.exitFullscreen(); } catch (e) {} };
+loadAlbum();
 $('again').onclick = () => { S.pick = []; S.cuts = [null, null, null, null]; go('home'); };
 
 /* QR로 받기 */
@@ -1113,22 +1214,26 @@ function showDownloadQR(id) {
   modal(`<h3>QR을 찍어 사진 받기</h3><p>휴대폰 기본 카메라로 찍으면 사진 저장 화면이 열려요.</p><canvas id="dlQR"></canvas><button class="btn" data-close style="margin-top:14px">닫기</button>`);
   drawQRTo($('dlQR'), url, 2);
 }
-$('qrBtn').onclick = async () => {
-  if (!S.share) { openSettings(true); return; }
-  if (S.uploaded) return showDownloadQR(S.uploaded);
+async function uploadForQR(getB64, name, known) {
+  if (!S.share) { openSettings(true); return null; }
+  if (known) { showDownloadQR(known); return known; }
   modal(`<h3>사진 올리는 중</h3><p>잠깐만 기다려 주세요.</p><div class="spin"></div>`);
   try {
-    const data = finalData().split(',')[1];
+    const data = await getB64();
     const ctrl = new AbortController(), tm = setTimeout(() => ctrl.abort(), 60000);
-    const r = await fetch(S.share, {method: 'POST', body: JSON.stringify({name: fileName(), data}), signal: ctrl.signal});
+    const r = await fetch(S.share, {method: 'POST', body: JSON.stringify({name, data}), signal: ctrl.signal});
     clearTimeout(tm);
     const j = await r.json();
     if (!j.ok) throw new Error(j.error || '서버 오류');
-    S.uploaded = j.id; showDownloadQR(j.id);
+    showDownloadQR(j.id); return j.id;
   } catch (e) {
-    modal(`<h3>올리지 못했어요</h3><p>${esc(e.name === 'AbortError' ? '시간이 너무 오래 걸렸어요. 인터넷 연결을 확인해 주세요.' : (e.message || '인터넷 연결이나 설정 주소를 확인해 주세요.'))}</p><button class="btn" id="retryUp">다시 시도</button><button class="btn ghost" data-close style="margin-top:10px">닫기</button>`);
-    $('retryUp').onclick = () => $('qrBtn').onclick();
+    modal(`<h3>올리지 못했어요</h3><p>${esc(e.name === 'AbortError' ? '시간이 너무 오래 걸렸어요. 인터넷 연결을 확인해 주세요.' : (e.message || '인터넷 연결이나 설정 주소를 확인해 주세요.'))}</p><button class="btn ghost" data-close>닫기</button>`);
+    return null;
   }
+}
+$('qrBtn').onclick = async () => {
+  const id = await uploadForQR(async () => finalData().split(',')[1], fileName(), S.uploaded);
+  if (id) { S.uploaded = id; if (S.albumId) { const p = album.find(x => x.id === S.albumId); if (p && !p.driveId) { p.driveId = id; try { await dbDo('readwrite', st => st.put(p)); } catch (e) {} } } }
 };
 
 /* 설정 */
