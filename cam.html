@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>연말네컷 · 폰 카메라</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#0B1226;color:#F7F1E3;font:16px/1.5 "Gowun Dodum",system-ui,sans-serif;overflow:hidden}
+.wrap{position:fixed;inset:0;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 14px)}
+.top{display:flex;align-items:center;gap:10px;min-height:44px}
+.top b{flex:1;font-family:Jua,sans-serif;font-weight:400;font-size:20px;color:#F2C65E}
+.pill{min-height:44px;border-radius:22px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:15px;padding:0 16px}
+.stage{flex:1;position:relative;margin:10px 0;border-radius:18px;overflow:hidden;background:#000;min-height:0}
+video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Jua,sans-serif;font-size:150px;color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.6);pointer-events:none}
+.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+.flash.go{animation:fl .45s ease-out}
+@keyframes fl{0%{opacity:.95}100%{opacity:0}}
+.intro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;background:linear-gradient(180deg,#16224A,#2B1C3F)}
+.intro img{width:150px}
+.intro h1{font-family:Jua,sans-serif;font-weight:400;font-size:30px;margin:8px 0 6px;color:#F2C65E}
+.intro p{margin:0 0 16px;color:#C9C2D6;font-size:15px}
+input{width:150px;min-height:52px;border-radius:14px;border:1.5px solid rgba(255,255,255,.2);background:rgba(0,0,0,.25);color:#fff;font:inherit;font-size:24px;text-align:center;letter-spacing:.2em;margin-bottom:14px}
+.btn{min-height:58px;border-radius:29px;border:0;padding:0 28px;font-family:Jua,sans-serif;font-size:21px;color:#3A2504;background:linear-gradient(180deg,#FCE6A8,#F2C65E 55%,#D39C3A);width:100%;max-width:320px}
+.st{display:flex;align-items:center;gap:8px;font-size:14px;color:#C9C2D6}
+.st i{width:10px;height:10px;border-radius:50%;background:#6B6585;flex:none}
+.st.ok i{background:#2FB67C}.st.err i{background:#E8505B}
+.tip{font-size:13px;color:#9C95B0;margin:6px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><b>연말네컷 폰 카메라</b><button class="pill" id="flip">앞뒤 전환</button></div>
+  <div class="stage">
+    <video id="v" playsinline muted autoplay></video>
+    <div class="count" id="count"></div>
+    <div class="intro" id="intro">
+      <img src="img/dabut-heart.png" alt="">
+      <h1>폰을 카메라로 연결해요</h1>
+      <p>카메라 화면이 포토부스 패드에 실시간으로 떠요.<br>패드를 보면서 포즈를 잡아 주세요!</p>
+      <input id="code" inputmode="numeric" maxlength="4" placeholder="코드">
+      <button class="btn" id="go">카메라 켜고 연결하기</button>
+    </div>
+  </div>
+  <div class="st" id="st"><i></i><span>패드 화면의 QR로 들어오면 코드가 자동으로 들어가요</span></div>
+  <p class="tip">찍는 동안 화면이 꺼지지 않게 해 주세요. 세로 4컷은 폰을 가로로 눕히면 더 잘 나와요.</p>
+</div>
+<div class="flash" id="flash"></div>
+
+<script src="vendor/peerjs.min.js"></script>
+<script>
+{
+const $ = id => document.getElementById(id);
+let code = (new URLSearchParams(location.search).get('c') || '').replace(/\D/g, '').slice(0, 4);
+$('code').value = code;
+$('code').oninput = e => { code = e.target.value.replace(/\D/g, '').slice(0, 4); e.target.value = code; };
+
+let facing = 'environment', stream = null, peer = null, conn = null, call = null, lock = null, started = false;
+function st(cls, t) { $('st').className = 'st ' + cls; $('st').lastElementChild.textContent = t; }
+
+async function getCam() {
+  const s = await navigator.mediaDevices.getUserMedia({audio: false, video: {facingMode: facing, width: {ideal: 2560}, height: {ideal: 1440}}});
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = s; $('v').srcObject = s; $('v').style.transform = facing === 'user' ? 'scaleX(-1)' : ''; await $('v').play().catch(() => {});
+  return s;
+}
+async function wake() { try { if ('wakeLock' in navigator) lock = await navigator.wakeLock.request('screen'); } catch (e) {} }
+document.addEventListener('visibilitychange', () => { if (!document.hidden && started) { wake(); if (!conn || !conn.open) connect(); } });
+
+$('go').onclick = async () => {
+  if (!/^\d{4}$/.test(code)) { $('code').focus(); st('err', '패드 화면에 보이는 4자리 코드를 넣어 주세요'); return; }
+  try { unlockAudio(); await getCam(); } catch (e) { st('err', '카메라를 켤 수 없어요. 사파리/크롬 설정에서 카메라 권한을 허용해 주세요.'); return; }
+  $('intro').hidden = true; $('intro').style.display = 'none'; started = true; wake(); connect();
+};
+function connect() {
+  if (!window.Peer) { st('err', '연결 도구를 불러오지 못했어요. 새로고침해 주세요.'); return; }
+  st('', '패드에 연결하는 중');
+  const go = () => {
+    try { conn && conn.close(); } catch (e) {} try { call && call.close(); } catch (e) {}
+    const id = 'dadabut-y4c-' + code;
+    conn = peer.connect(id, {reliable: true, metadata: {role: 'cam'}});
+    conn.on('open', () => { st('ok', `패드와 연결됐어요 · 코드 ${code}`); conn.send({t: 'facing', facing}); call = peer.call(id, stream, {metadata: {role: 'cam'}}); });
+    conn.on('data', onCmd);
+    conn.on('close', () => { if (!started) return; st('err', '연결이 끊겼어요. 다시 연결하는 중'); setTimeout(connect, 2000); });
+  };
+  if (!peer || peer.destroyed) {
+    peer = new Peer({debug: 0});
+    peer.on('open', go);
+    peer.on('error', e => { st('err', e.type === 'peer-unavailable' ? '패드를 찾지 못했어요. 패드에서 ‘폰 카메라로 찍기’ 화면을 열어 주세요.' : '연결이 불안정해요. 다시 시도하는 중'); setTimeout(() => { if (!conn || !conn.open) connect(); }, 3000); });
+    peer.on('disconnected', () => setTimeout(() => peer && !peer.destroyed && peer.reconnect(), 1200));
+  } else if (peer.open) go(); else peer.reconnect();
+}
+let AC = null;
+function unlockAudio() { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); AC.resume(); } catch (e) {} }
+function beep(f, d) { try { const o = AC.createOscillator(), g = AC.createGain(); o.frequency.value = f; g.gain.value = .15; g.gain.exponentialRampToValueAtTime(.001, AC.currentTime + d); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime + d); } catch (e) {} }
+async function onCmd(d) {
+  if (!d) return;
+  if (d.t === 'count') { $('count').textContent = d.n || ''; if (d.n) beep(d.n === 1 ? 1320 : 880, .1); }
+  if (d.t === 'flip') {
+    facing = facing === 'user' ? 'environment' : 'user';
+    if (!stream) return;
+    try {
+      const s = await getCam(), tr = s.getVideoTracks()[0];
+      const snd = call && call.peerConnection && call.peerConnection.getSenders().find(x => x.track && x.track.kind === 'video');
+      if (snd) await snd.replaceTrack(tr); if (conn && conn.open) conn.send({t: 'facing', facing});
+    } catch (e) { st('err', '카메라를 바꾸지 못했어요'); }
+  }
+  if (d.t === 'shoot') {
+    $('count').textContent = '';
+    const v = $('v'), vw = v.videoWidth, vh = v.videoHeight;
+    try {
+      if (!vw) throw new Error('no frame');
+      const m = Math.min(1, 2400 / Math.max(vw, vh)), cv = document.createElement('canvas');
+      cv.width = Math.round(vw * m); cv.height = Math.round(vh * m);
+      cv.getContext('2d').drawImage(v, 0, 0, cv.width, cv.height);
+      const fl = $('flash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
+      const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', .92));
+      conn.send({t: 'shot', id: d.id, buf: await blob.arrayBuffer(), facing});
+    } catch (e) { conn.send({t: 'shotfail', id: d.id}); }
+  }
+}
+$('flip').onclick = () => onCmd({t: 'flip'});
+}
+</script>
+</body>
+</html>
