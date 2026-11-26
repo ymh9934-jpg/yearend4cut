@@ -439,6 +439,7 @@ const imgReady = Promise.all([loadImg('d-heart', 'img/dabut-heart.png'), loadImg
 /* ===== 배치 ===== */
 function geo(layout, tid) {
   const t = THEMES.find(x => x.id === (tid || S.theme)) || THEMES[0], head = t.head || 0;
+  if (t.v2) return geoV2(layout, t);
   if (layout === 'grid') {
     const W = 1200, pad = 56, gap = 28, foot = 300, H = 1800 + head;
     const w = (W - pad * 2 - gap) / 2, h = (1800 - pad - foot - gap) / 2;
@@ -806,6 +807,170 @@ const CHAR_SET = [
 if (!THEMES.some(t => t.id === S.theme)) S.theme = THEMES[0].id;
 S.cat = (THEMES.find(t => t.id === S.theme) || THEMES[0]).cat;
 
+/* ===================================================================
+   프레임 v2 — 요즘 포토부스 감성: 단색 바탕, 얇고 일정한 여백, 각진 칸,
+   작고 정돈된 글씨, 포인트는 한 군데만.
+   =================================================================== */
+const HANGUL = /[가-힣]/;
+function phraseFont(kind, s, text) {
+  const ko = HANGUL.test(text || '');
+  switch (kind) {
+    case 'serif': return ko ? `700 ${s * .82}px "Gowun Batang", serif` : `italic 400 ${s * 1.12}px "Instrument Serif", serif`;
+    case 'hand': return ko ? `${s * 1.15}px "Nanum Pen Script", cursive` : `600 ${s * 1.08}px Caveat, cursive`;
+    case 'pixel': return ko ? `${s * .78}px "Gowun Dodum", sans-serif` : `${s * 1.15}px VT323, monospace`;
+    case 'grot': return ko ? `${s * .78}px "Gowun Dodum", sans-serif` : `500 ${s * .86}px "Space Grotesk", sans-serif`;
+    default: return `${s * .9}px Jua, sans-serif`;
+  }
+}
+function geoV2(layout, t) {
+  const side = t.side || 48, top = (t.top || 48) + (t.head || 0), gap = t.gap || 24;
+  if (layout === 'grid') {
+    const W = 1200, foot = t.footG || 250, H = 1800 + (t.head || 0) + (t.footG ? t.footG - 250 : 0);
+    const w = (W - side * 2 - gap) / 2, h = (H - top - foot - gap) / 2;
+    return {W, H, foot, pad: side, head: t.head || 0, P: 74, Q: 24, L: 56, cuts: [0, 1, 2, 3].map(i => ({x: side + (i % 2) * (w + gap), y: top + Math.floor(i / 2) * (h + gap), w, h}))};
+  }
+  const W = 1200, foot = t.foot || 300, w = W - side * 2, h = Math.round(w * 3 / 4);
+  const H = top + h * 4 + gap * 3 + foot;
+  return {W, H, foot, pad: side, head: t.head || 0, P: 88, Q: 26, L: 70, cuts: [0, 1, 2, 3].map(i => ({x: side, y: top + i * (h + gap), w, h}))};
+}
+function smallLine(c, text, x, y, col, size, align) {
+  c.save(); c.font = `500 ${size}px "Space Grotesk", "Gowun Dodum", sans-serif`; c.fillStyle = col; c.textAlign = align || 'center'; c.textBaseline = 'middle';
+  try { c.letterSpacing = `${Math.round(size * .14)}px`; } catch (e) {}
+  c.fillText(text, x, y); c.restore();
+}
+function fitFont(c, kind, base, text, maxW) { let s = base; c.font = phraseFont(kind, s, text); const w = c.measureText(text).width; if (w > maxW) { s *= maxW / w; c.font = phraseFont(kind, s, text); } return s; }
+function bow(c, x, y, s, col) {
+  c.save(); c.translate(x, y); c.strokeStyle = col; c.fillStyle = col; c.lineWidth = s * .07; c.lineJoin = c.lineCap = 'round';
+  c.beginPath(); c.moveTo(0, 0); c.bezierCurveTo(-s * .55, -s * .45, -s * .75, s * .15, 0, 0); c.moveTo(0, 0); c.bezierCurveTo(s * .55, -s * .45, s * .75, s * .15, 0, 0); c.stroke();
+  c.beginPath(); c.moveTo(-s * .04, s * .02); c.quadraticCurveTo(-s * .18, s * .4, -s * .3, s * .7); c.moveTo(s * .04, s * .02); c.quadraticCurveTo(s * .2, s * .38, s * .34, s * .66); c.stroke();
+  c.beginPath(); c.arc(0, 0, s * .09, 0, 7); c.fill(); c.restore();
+}
+function doodle(c, kind, x, y, s, col) {
+  c.save(); c.strokeStyle = col; c.fillStyle = col; c.lineWidth = Math.max(3, s * .06); c.lineCap = c.lineJoin = 'round';
+  if (kind === 'heart') { heartPath(c, x, y, s); c.stroke(); }
+  else if (kind === 'star') { starPath(c, x, y, s * .5, 5, .45); c.stroke(); }
+  else if (kind === 'spark') { for (const a of [0, Math.PI / 2]) { c.beginPath(); c.moveTo(x + Math.cos(a) * s * .5, y + Math.sin(a) * s * .5); c.lineTo(x - Math.cos(a) * s * .5, y - Math.sin(a) * s * .5); c.stroke(); } }
+  else if (kind === 'squig') { c.beginPath(); c.moveTo(x - s * .6, y); for (let i = 0; i <= 6; i++) c.lineTo(x - s * .6 + i * s * .2, y + (i % 2 ? -s * .14 : s * .14)); c.stroke(); }
+  else if (kind === 'arrow') { c.beginPath(); c.moveTo(x - s * .5, y + s * .2); c.quadraticCurveTo(x, y - s * .3, x + s * .5, y); c.stroke(); c.beginPath(); c.moveTo(x + s * .5, y); c.lineTo(x + s * .3, y - s * .12); c.moveTo(x + s * .5, y); c.lineTo(x + s * .32, y + s * .14); c.stroke(); }
+  c.restore();
+}
+function dateStamp() { const d = new Date(); return `'${String(d.getFullYear()).slice(2)} ${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getDate()).padStart(2, '0')}`; }
+
+function paintV2(c, t, g, opt, drawCells) {
+  const {W, H} = g, top = H - g.foot, title = S.title || 'THE 다붓', dt = today();
+  // 바탕
+  if (t.tpl === 'aura') {
+    c.fillStyle = t.bg; c.fillRect(0, 0, W, H);
+    for (const [cx, cy, r, col] of t.blobs) { const gr = c.createRadialGradient(cx * W, cy * H, 0, cx * W, cy * H, r * W); gr.addColorStop(0, col); gr.addColorStop(1, col.replace(/[\d.]+\)$/, '0)')); c.fillStyle = gr; c.fillRect(0, 0, W, H); }
+  } else { c.fillStyle = t.bg; c.fillRect(0, 0, W, H); }
+  if (t.tpl === 'film') { c.fillStyle = t.sub; for (const x of [22, W - 58]) for (let y = 26; y < H - 30; y += 64) { rr(c, x, y, 36, 40, 7); c.fill(); } }
+  if (t.tpl === 'charmini') { c.save(); c.strokeStyle = t.acc; c.lineWidth = 4; rr(c, 18, 18, W - 36, H - 36, 28); c.stroke(); c.restore(); }
+  // 사진 칸
+  drawCells(t.radius ?? 4, t.cutLine);
+  const cuts = g.cuts;
+  // 칸 위 장식
+  if (t.tpl === 'digicam') cuts.forEach(cut => { c.save(); c.font = `${S.layout === 'grid' ? 46 : 58}px VT323, monospace`; c.textAlign = 'right'; c.textBaseline = 'alphabetic'; c.shadowColor = 'rgba(255,120,30,.8)'; c.shadowBlur = 12; c.fillStyle = '#FF9A3C'; c.fillText(dateStamp(), cut.x + cut.w - 26, cut.y + cut.h - 22); c.restore(); });
+  if (t.tpl === 'coquette') cuts.forEach(cut => bow(c, cut.x + cut.w / 2, cut.y + 6, S.layout === 'grid' ? 96 : 120, t.acc));
+  if (t.tpl === 'doodle') {
+    const kinds = ['heart', 'star', 'spark', 'squig', 'arrow'];
+    cuts.forEach((cut, i) => { const s = S.layout === 'grid' ? 90 : 116;
+      doodle(c, kinds[i % 5], i % 2 ? cut.x + s * .55 : cut.x + cut.w - s * .55, cut.y + s * .5, s, t.acc);
+      doodle(c, kinds[(i + 2) % 5], i % 2 ? cut.x + cut.w - s * .55 : cut.x + s * .6, cut.y + cut.h - s * .45, s * .8, t.acc); });
+    c.save(); c.font = `600 ${S.layout === 'grid' ? 60 : 76}px Caveat, cursive`; c.fillStyle = t.acc; c.textBaseline = 'middle';
+    c.translate(cuts[1].x + cuts[1].w - (S.layout === 'grid' ? 230 : 300), cuts[1].y + cuts[1].h - 60); c.rotate(-.08); c.fillText('my fav ♡', 0, 0); c.restore();
+  }
+  if (t.tpl === 'film') { c.save(); c.font = '28px VT323, monospace'; c.fillStyle = t.acc; c.textBaseline = 'middle'; cuts.forEach((cut, i) => { c.fillText(`▸ ${i + 1}A`, cut.x + 4, cut.y - 13); c.textAlign = 'right'; c.fillText('DABUT 400', cut.x + cut.w - 4, cut.y - 13); c.textAlign = 'left'; }); c.restore(); }
+  if (t.tpl === 'charmini') {
+    const s = S.layout === 'grid' ? 140 : 180;
+    [[0, 'tr'], [cuts.length - 1, 'bl']].forEach(([i, pos]) => { const cut = cuts[i], ar = CHAR_AR[t.char] || 1;
+      c.save(); c.translate(pos === 'tr' ? cut.x + cut.w - s * .36 : cut.x + s * .4, pos === 'tr' ? cut.y + s * ar * .22 : cut.y + cut.h - s * ar * .3); c.rotate(pos === 'tr' ? .1 : -.1); drawChar(c, t.char, 0, 0, s); c.restore(); });
+    cuts.forEach((cut, i) => { if (i % 2) doodle(c, 'spark', cut.x + cut.w - 24, cut.y + cut.h - 24, 36, t.acc); else doodle(c, 'spark', cut.x + 26, cut.y + 26, 30, t.acc); });
+  }
+  if (t.tpl === 'news') {
+    c.fillStyle = t.ink; c.font = '700 104px "Gowun Batang", serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('더다붓 일보', W / 2, 48 + 60);
+    c.fillRect(g.pad, 48 + 122, W - g.pad * 2, 4); c.fillRect(g.pad, 48 + 168, W - g.pad * 2, 1.5);
+    smallLine(c, `NO. 2027  ·  ${dt}`, g.pad, 48 + 146, t.sub, 22, 'left'); smallLine(c, 'SPECIAL EDITION', W - g.pad, 48 + 146, t.sub, 22, 'right');
+  }
+  if (t.tpl === 'webcam') {
+    c.fillStyle = t.acc; c.fillRect(0, 0, W, g.head + 18);
+    c.font = '46px VT323, monospace'; c.fillStyle = '#FFFFFF'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText('dabut_cam.exe', 34, (g.head + 18) / 2);
+    ['_', '□', 'x'].forEach((s2, i) => { const x = W - 168 + i * 50; c.fillStyle = 'rgba(255,255,255,.9)'; c.fillRect(x, 20, 38, g.head - 22); c.fillStyle = t.acc; c.font = '36px VT323, monospace'; c.textAlign = 'center'; c.fillText(s2, x + 19, 20 + (g.head - 22) / 2); });
+  }
+  if (t.tpl === 'noel') {
+    c.save(); c.strokeStyle = t.acc; c.fillStyle = t.acc; c.lineWidth = 3;
+    const sx = W / 2, sy = top + 46; starPath(c, sx, sy, 22, 5, .45); c.fill();
+    for (const s2 of [-1, 1]) { c.beginPath(); c.moveTo(sx + s2 * 40, sy); c.lineTo(sx + s2 * 220, sy); c.stroke(); }
+    c.restore();
+  }
+  // 하단
+  let x0 = g.pad, x1 = W - g.pad;
+  if (t.tpl === 'char') { const ch = Math.min(g.foot * .95, 300), cw = ch / (CHAR_AR[t.char] || 1); drawChar(c, t.char, W - g.pad - cw / 2, H - g.foot / 2 - 8, cw); x1 = W - g.pad - cw - 10; }
+  if (t.tpl === 'dabut' && IMG[t.img]) { const im = IMG[t.img], ih = g.foot * .92, iw = ih * im.width / im.height; c.drawImage(im, W - g.pad - iw + 10, H - ih - 10, iw, ih); x1 = W - g.pad - iw; }
+  const ph = S.phrase, cx = (x0 + x1) / 2, maxW = x1 - x0;
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  if (t.tpl === 'pass') {
+    const y0 = top + 20; c.save(); c.setLineDash([2, 14]); c.lineCap = 'round'; c.strokeStyle = t.sub; c.lineWidth = 6; c.beginPath(); c.moveTo(g.pad, y0); c.lineTo(W - g.pad, y0); c.stroke(); c.restore();
+    smallLine(c, 'BOARDING PASS', g.pad, y0 + 44, t.sub, 22, 'left'); smallLine(c, dt, W - g.pad, y0 + 44, t.sub, 22, 'right');
+    c.fillStyle = t.ink; c.font = '500 86px "Space Grotesk", sans-serif'; c.textAlign = 'left'; c.fillText('SEL', g.pad, y0 + 130); c.textAlign = 'right'; c.fillText('2027', W - g.pad, y0 + 130);
+    c.strokeStyle = t.acc; c.lineWidth = 4; c.beginPath(); c.moveTo(g.pad + 230, y0 + 130); c.lineTo(W - g.pad - 290, y0 + 130); c.stroke();
+    c.save(); c.translate((W) / 2 - 30, y0 + 130); c.fillStyle = t.acc; c.beginPath(); c.moveTo(-24, -10); c.lineTo(24, 0); c.lineTo(-24, 10); c.lineTo(-14, 0); c.fill(); c.restore();
+    smallLine(c, `PASSENGER  ${title}`, g.pad, y0 + 200, t.ink, 24, 'left');
+    if (ph) { c.textAlign = 'left'; fitFont(c, 'serif', 60, ph, 560); c.fillStyle = t.ink; c.fillText(ph, g.pad, y0 + 262); }
+    const R = rng(11); c.fillStyle = t.ink; for (let x = W - g.pad - 330; x < W - g.pad;) { const w = 2 + Math.floor(R() * 3) * 3; if (R() > .25) c.fillRect(x, y0 + 180, w, Math.max(40, g.foot - 220)); x += w + 4; }
+    return;
+  }
+  const lines = [];
+  if (ph) lines.push('p');
+  lines.push('s');
+  const P = g.P * (t.pscale || 1), Q = g.Q;
+  const total = (ph ? P * 1.05 : 0) + Q + (ph ? 26 : 0);
+  let y = top + (g.foot - total) / 2 + (t.tpl === 'noel' ? 34 : 0);
+  if (ph) { fitFont(c, t.font, P, ph, maxW); c.fillStyle = t.ink; c.fillText(ph, cx, y + P * .52); y += P * 1.05 + 26; }
+  const L = IMG.logo;
+  if (L) { const lh = Q * 1.6, lw = lh * L.width / L.height; c.drawImage(L, cx - lw / 2 - 0, y - lh * .25, lw, lh); }
+  else smallLine(c, `${title.toUpperCase()}   ·   ${dt}`, cx, y + Q / 2, t.sub, Q);
+}
+
+/* v2 프레임 목록 */
+const V2 = [];
+const SOLIDS = [['milk', '밀크', '#FFFFFF', '#1E1E1E', '#8A8A8A'], ['butter', '버터', '#FFF1C9', '#4A3A12', '#9C8650'], ['sage', '세이지', '#DDE5D3', '#2F3B2A', '#6E7E62'], ['sky', '스카이', '#DCE9F7', '#23344F', '#6F86A8'],
+  ['cocoa', '코코아 브라운', '#4A342A', '#F4E9DF', '#C8AE9C'], ['black', '블랙', '#141414', '#F2F2F2', '#9A9A9A'], ['cherry', '체리', '#8E1F2F', '#FFE9EC', '#E7A9B3'], ['lav', '라벤더', '#E6E0F5', '#3A2F5C', '#8C80B4'],
+  ['peach', '피치', '#FFE1D3', '#5A2E1E', '#B9826C'], ['mint', '민트', '#D8F1E8', '#1F4A3C', '#5E9584']];
+SOLIDS.forEach(([id, name, bg, ink, sub], i) => V2.push({id: 's-' + id, cat: 'basic', name, tpl: 'solid', bg, ink, sub, font: i % 2 ? 'grot' : 'serif'}));
+[['aura-pink', '오라 핑크', '#FFF4F6', [[.2, .15, .7, 'rgba(255,170,200,.75)'], [.85, .55, .6, 'rgba(255,210,170,.6)'], [.3, .9, .6, 'rgba(210,190,255,.6)']], '#4A2338', '#A0708A'],
+ ['aura-blue', '오라 블루', '#F3F7FF', [[.8, .1, .7, 'rgba(160,200,255,.75)'], [.15, .6, .6, 'rgba(200,180,255,.6)'], [.8, .95, .6, 'rgba(170,240,220,.55)']], '#1F2E4F', '#6E7FA8'],
+ ['aura-sun', '오라 선셋', '#FFF8EF', [[.15, .2, .7, 'rgba(255,200,120,.7)'], [.85, .5, .6, 'rgba(255,150,150,.55)'], [.4, .95, .6, 'rgba(255,220,180,.6)']], '#4A2A12', '#A07A5A']
+].forEach(([id, name, bg, blobs, ink, sub]) => V2.push({id, cat: 'basic', name, tpl: 'aura', bg, blobs, ink, sub, font: 'serif'}));
+[['dc-black', '디카 블랙', '#111111', '#F2F2F2', '#8A8A8A'], ['dc-silver', '디카 실버', '#D9DCE1', '#1E2228', '#5E6670'], ['dc-white', '디카 화이트', '#FFFFFF', '#141414', '#8A8A8A']]
+  .forEach(([id, name, bg, ink, sub]) => V2.push({id, cat: 'y2k', name, tpl: 'digicam', bg, ink, sub, font: 'pixel', pscale: 1.05}));
+V2.push({id: 'webcam-1', cat: 'y2k', name: '하두리 캠', tpl: 'webcam', bg: '#E9ECF2', ink: '#1C2B6B', sub: '#6170A0', acc: '#3A5BD9', font: 'pixel', head: 92, top: 30});
+V2.push({id: 'webcam-2', cat: 'y2k', name: '하두리 핑크', tpl: 'webcam', bg: '#FBEAF1', ink: '#6A1F45', sub: '#B0708F', acc: '#E0589A', font: 'pixel', head: 92, top: 30});
+V2.push({id: 'film-1', cat: 'y2k', name: '필름 브라운', tpl: 'film', bg: '#2A211C', ink: '#F3E7D3', sub: '#E9DCC4', acc: '#F09A3E', font: 'grot', side: 104, gap: 46, top: 64});
+V2.push({id: 'film-2', cat: 'y2k', name: '필름 블랙', tpl: 'film', bg: '#0F0F0F', ink: '#EFEFEF', sub: '#D8D8D8', acc: '#F09A3E', font: 'grot', side: 104, gap: 46, top: 64});
+[['cq-pink', '리본 핑크', '#F9E4E8', '#6A2A3A', '#B07A88', '#D9657F'], ['cq-cream', '리본 크림', '#FBF3E7', '#4A3A2A', '#A08A70', '#C98B6B'], ['cq-white', '리본 화이트', '#FFFFFF', '#3A2A30', '#9A8A90', '#E08AA0'], ['cq-blue', '리본 블루', '#E3EEF9', '#24385A', '#7088A8', '#6E93C9']]
+  .forEach(([id, name, bg, ink, sub, acc]) => V2.push({id, cat: 'cute', name, tpl: 'coquette', bg, ink, sub, acc, font: 'serif', top: 70, gap: 40}));
+[['dd-pink', '사꾸 핑크펜', '#FFFFFF', '#3A2A30', '#9A8A90', '#FF5C8A'], ['dd-blue', '사꾸 파랑펜', '#FFFDF8', '#1F2E4F', '#7A86A0', '#3E7BFA'], ['dd-black', '사꾸 검정펜', '#F6F1E7', '#1E1E1E', '#7A7468', '#1E1E1E'], ['dd-green', '사꾸 초록펜', '#FFFFFF', '#1F3A2A', '#7A8A80', '#2FA35E']]
+  .forEach(([id, name, bg, ink, sub, acc]) => V2.push({id, cat: 'cute', name, tpl: 'doodle', bg, ink, sub, acc, font: 'hand', pscale: 1.05}));
+[['pass-white', '보딩패스 화이트', '#FFFFFF', '#141414', '#8A8A8A', '#E8505B'], ['pass-sky', '보딩패스 스카이', '#E4EEF8', '#1B2A44', '#6F82A0', '#3E7BFA'], ['pass-butter', '보딩패스 버터', '#FFF4D6', '#3A2E12', '#9C8650', '#E08A2E']]
+  .forEach(([id, name, bg, ink, sub, acc]) => V2.push({id, cat: 'concept', name, tpl: 'pass', bg, ink, sub, acc, foot: 400, footG: 330}));
+V2.push({id: 'news-1', cat: 'concept', name: '더다붓 일보', tpl: 'news', bg: '#F4F0E6', ink: '#1A1714', sub: '#6A6258', font: 'serif', head: 180});
+V2.push({id: 'pola-1', cat: 'concept', name: '폴라로이드', tpl: 'solid', bg: '#EFEBE4', ink: '#2A2622', sub: '#8A8278', font: 'hand', cutLine: ['#FFFFFF', 22], gap: 80, side: 70, top: 70});
+[['noel-green', '노엘 그린', '#1F3D2E', '#F3E7CF', '#B9C9B4', '#D8B26A'], ['noel-red', '노엘 레드', '#7E1E24', '#FBEFE6', '#E3B6B0', '#E2BE7A'], ['noel-cream', '노엘 크림', '#F5EFE3', '#3B2A1E', '#9A8670', '#B98A3E'], ['noel-navy', '노엘 네이비', '#1B2340', '#F2ECDD', '#AAB2CC', '#D8B26A']]
+  .forEach(([id, name, bg, ink, sub, acc]) => V2.push({id, cat: 'noel', name, tpl: 'noel', bg, ink, sub, acc, font: 'serif', foot: 330, footG: 270}));
+[['db-lav', '다붓이 라벤더', '#ECE8FB', '#3E3A86', '#8A86C4', 'd-heart'], ['db-sky', '다붓이 스카이', '#E3EEFB', '#2A4478', '#7A92C0', 'd-book'], ['db-cream', '다붓이 크림', '#FBF4EA', '#5A3D52', '#A89098', 'd-coffee'], ['db-night', '다붓이 밤', '#1D2347', '#F0ECFF', '#A9A6D8', 'd-heart']]
+  .forEach(([id, name, bg, ink, sub, img]) => V2.push({id, cat: 'dabut', name, tpl: 'dabut', bg, ink, sub, img, font: 'cute'}));
+for (const [k, name, cat, bg, bg2, ink, acc] of CHAR_SET) {
+  V2.push({id: 'ch-' + k, cat: 'char', name, tpl: 'char', bg, ink, sub: acc, char: k, font: 'cute', radius: 10});
+  V2.push({id: 'cm-' + k, cat: 'char', name: name + ' 미니', tpl: 'charmini', bg: '#FFFFFF', ink, sub: acc, acc, char: k, font: 'cute', radius: 10, side: 56, top: 56});
+}
+const V2_CATS = [{id: 'basic', name: '심플'}, {id: 'y2k', name: 'Y2K·필름'}, {id: 'cute', name: '리본·사꾸'}, {id: 'concept', name: '콘셉트'}, {id: 'char', name: '캐릭터'}, {id: 'dabut', name: '다붓이'}, {id: 'noel', name: '성탄'}];
+V2.forEach(t => { t.v2 = true; t.dark = ['#141414', '#111111', '#0F0F0F', '#2A211C', '#4A342A', '#8E1F2F', '#1F3D2E', '#7E1E24', '#1B2340', '#1D2347'].includes(t.bg); });
+THEMES.splice(0, THEMES.length, ...V2);
+CATS.splice(0, CATS.length, ...V2_CATS);
+if (!THEMES.some(t => t.id === S.theme)) S.theme = 's-milk';
+S.cat = (THEMES.find(t => t.id === S.theme) || THEMES[0]).cat;
+
+
 
 /* ===== 감성 프레임 (필름·폴라로이드·신문·잡지·영수증·웹캠·다이어리·깅엄·운세) ===== */
 const FORTUNES = ['기도 응답이 쏟아지는 한 해', '새 친구가 우르르 생겨요', '올해보다 두 배 더 웃어요', '맛있는 거 사 주는 사람이 나타나요', '예배 지각 0번 달성!', '찬양할 때 고음이 뻥 뚫려요', '마음먹은 일이 술술 풀려요', '순모임이 제일 재밌는 한 해', '건강하고 든든한 한 해', '사랑이 넘쳐흐르는 한 해', '좋은 소식이 연달아 와요', '감사할 일이 매일 생겨요'];
@@ -921,7 +1086,7 @@ function drawPhoto(c, cut, cell, f) {
   c.filter = f; c.drawImage(src, cut.x + (cut.w - dw) / 2 + cell.ox, cut.y + (cut.h - dh) / 2 + cell.oy, dw, dh); c.filter = 'none';
 }
 function placeholder(c, cut, t, i) {
-  c.fillStyle = t.dark ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.55)'; c.fillRect(cut.x, cut.y, cut.w, cut.h);
+  c.fillStyle = t.v2 ? (t.dark ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.07)') : (t.dark ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.55)'); c.fillRect(cut.x, cut.y, cut.w, cut.h);
   c.fillStyle = t.ink; c.globalAlpha = .18; const cx = cut.x + cut.w / 2, s = Math.min(cut.w, cut.h);
   c.beginPath(); c.arc(cx, cut.y + cut.h * .42, s * .17, 0, 7); c.fill(); c.beginPath(); c.ellipse(cx, cut.y + cut.h * 1.02, s * .36, s * .38, 0, Math.PI, 0); c.fill();
   c.globalAlpha = .55; c.font = `${Math.round(s * .12)}px Jua, sans-serif`; c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText(String(i + 1), cut.x + s * .06, cut.y + s * .05); c.globalAlpha = 1;
@@ -931,7 +1096,16 @@ function render(cv, scale, opt) {
   const t = THEMES.find(x => x.id === (opt.theme || S.theme)), g = geo(S.layout, t.id), f = FILTERS.find(x => x.id === S.filter).f;
   cv.width = Math.round(g.W * scale); cv.height = Math.round(g.H * scale);
   const c = cv.getContext('2d'); c.setTransform(scale, 0, 0, scale, 0, 0);
-  const grd = c.createLinearGradient(0, 0, 0, g.H); grd.addColorStop(0, t.bg); grd.addColorStop(1, t.bg2);
+  if (t.v2) {
+    paintV2(c, t, g, opt, (R, line) => g.cuts.forEach((cut, i) => {
+      if (line) { c.fillStyle = line[0]; c.fillRect(cut.x - line[1], cut.y - line[1], cut.w + line[1] * 2, cut.h + line[1] * 2.6); }
+      c.save(); rr(c, cut.x, cut.y, cut.w, cut.h, R); c.clip();
+      const cell = opt.empty ? null : S.cuts[i];
+      if (cell) drawPhoto(c, cut, cell, f); else placeholder(c, cut, t, i);
+      c.restore();
+    }));
+  } else {
+  const grd = c.createLinearGradient(0, 0, 0, g.H); grd.addColorStop(0, t.bg); grd.addColorStop(1, t.bg2 || t.bg);
   c.fillStyle = grd; c.fillRect(0, 0, g.W, g.H);
   styleUnder(c, t, g); decoUnder(c, t, g.W, g.H);
   const cs = cutStyle(t), R = cs.R, B = cs.B;
@@ -984,6 +1158,7 @@ function render(cv, scale, opt) {
     }
     if (s.k === 'sub') { c.font = `${g.Q}px Jua, sans-serif`; c.fillStyle = t.sub; c.fillText(sub, cx, y + s.h / 2, maxW); }
     y += s.h + gap;
+  }
   }
   }
   if (opt.empty) return cv;
@@ -1063,7 +1238,7 @@ function drawHome() {
   const m = $('mascot'), x = m.getContext('2d'); x.clearRect(0, 0, m.width, m.height);
   drawChar(x, 'gyul', 90, 140, 130); drawChar(x, 'cocoa', 240, 130, 140); drawChar(x, 'hoppang', 395, 150, 150);
   $('frameCount').textContent = `프레임 ${THEMES.length}가지`;
-  if (!featIds) { const pool = THEMES.filter(t => t.char || t.style || t.sticker); featIds = []; while (featIds.length < 4) { const t = pool[Math.floor(Math.random() * pool.length)]; if (!featIds.includes(t.id)) featIds.push(t.id); } }
+  if (!featIds) { const cats = CATS.map(c => c.id).sort(() => Math.random() - .5).slice(0, 4); featIds = cats.map(cid => { const l = THEMES.filter(t => t.cat === cid); return l[Math.floor(Math.random() * l.length)].id; }); }
   $('featured').innerHTML = featIds.map(id => `<div><img alt=""><small>${esc(THEMES.find(t => t.id === id).name)}</small></div>`).join('');
   [...$('featured').children].forEach((d, i) => { d.querySelector('img').src = frameThumb(featIds[i], 'strip', .2); });
   updateBadges();
@@ -1629,6 +1804,8 @@ function openSettings(fromQR) {
   };
 }
 $('openSettings').onclick = () => openSettings(false);
+
+/* 테스트용 */
 
 /* ===== 시작 ===== */
 if (location.hash && location.hash !== '#home') history.replaceState(null, '', location.pathname);
