@@ -1234,7 +1234,7 @@ async function runSeq() {
   while (S.queue.length && my === runId) {
     if (S.src === 'phone' && !(remote.conn && remote.conn.open && remote.stream)) { S.running = false; $('count').textContent = ''; attachRemote(); return; }
     drawShootUI();
-    for (let n = S.timer; n > 0; n--) { if (my !== runId) return; cnt.textContent = n; cnt.classList.remove('pop'); void cnt.offsetWidth; cnt.classList.add('pop'); beep(n === 1 ? 1320 : 880, .12); await wait(1000); }
+    for (let n = S.timer; n > 0; n--) { if (my !== runId) return; cnt.textContent = n; cnt.classList.remove('pop'); void cnt.offsetWidth; cnt.classList.add('pop'); beep(n === 1 ? 1320 : 880, .12); relay({t: 'count', n, cut: S.queue[0] + 1}); await wait(1000); }
     if (my !== runId) return;
     cnt.textContent = ''; relay({t: 'count', n: 0}); shutter(); flash();
     const shot = S.src === 'phone' ? await grabPhone() : grab();
